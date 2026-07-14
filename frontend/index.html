@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ru" class="app-booting">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover,user-scalable=no"/>
+  <meta name="theme-color" content="#f0f2f5"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="Messenger"/>
+  <link rel="manifest" href="/manifest.webmanifest"/>
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png"/>
+  <title>Messenger</title>
+  <script>
+    (function(){
+      var ua=navigator.userAgent||'';
+      var touch=navigator.maxTouchPoints||0;
+      var w=window.innerWidth||document.documentElement.clientWidth||390;
+      var h=window.innerHeight||document.documentElement.clientHeight||844;
+      var type='desktop';
+      if(/iPhone|Android.+Mobile/i.test(ua)||(touch>1&&Math.min(w,h)<600)) type='phone';
+      else if(/iPad|Tablet/i.test(ua)||(touch>1&&Math.min(w,h)>=600)) type='tablet';
+      document.documentElement.dataset.device=type;
+      document.documentElement.dataset.orientation=w>h?'landscape':'portrait';
+      document.documentElement.style.setProperty('--app-height',h+'px');
+      window.__INITIAL_DEVICE__={type:type,width:w,height:h,orientation:w>h?'landscape':'portrait',standalone:window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true,ios:/iPhone|iPad|iPod/i.test(ua)||(/Macintosh/i.test(ua)&&touch>1)};
+    })();
+  </script>
+  <style>
+    :root{background:#eef3ef}
+    html,body,#root{width:100%;height:100%;margin:0;overflow:hidden}
+    body{background:#eef3ef}
+    #root{visibility:hidden}
+    html.app-ready #root{visibility:visible}
+    #boot-screen{position:fixed;inset:0;z-index:2147483647;display:grid;place-items:center;background:#eef3ef;color:#496556;font:600 15px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    #boot-screen::before{content:"";width:34px;height:34px;border-radius:50%;border:2px solid rgba(73,101,86,.18);border-top-color:#496556;animation:spin .7s linear infinite}
+    html.app-ready #boot-screen{display:none}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    html[data-device="phone"] .app{position:fixed!important;inset:0!important;width:100%!important;height:var(--app-height,100dvh)!important;display:block!important;overflow:hidden!important}
+    html[data-device="phone"] .app>aside,html[data-device="phone"] .app>main{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;min-width:0!important;max-width:none!important;transform:none!important;transition:none!important}
+    html[data-device="phone"] .app:not(.mobile-chat-open)>aside{display:flex!important}
+    html[data-device="phone"] .app:not(.mobile-chat-open)>main{display:none!important}
+    html[data-device="phone"] .app.mobile-chat-open>aside{display:none!important}
+    html[data-device="phone"] .app.mobile-chat-open>main{display:flex!important}
+  </style>
+</head>
+<body>
+  <div id="boot-screen" aria-hidden="true"></div>
+  <div id="root"></div>
+  <script type="module" src="/src/main.jsx"></script>
+</body>
+</html>
