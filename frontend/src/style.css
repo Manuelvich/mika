@@ -3019,3 +3019,252 @@ html[data-ui-mode="touch"][data-platform="android"][data-call-active="true"] .ca
 html[data-ui-mode="touch"][data-platform="ios"][data-call-active="true"] .call-controls{
   padding-bottom:max(30px,calc(env(safe-area-inset-bottom) + 18px))!important;
 }
+
+/* ===== Release Mika 3.2 ===== */
+
+/* Item 5: Messages alignment - outgoing on right, incoming on left */
+.message-item .bubble.mine {
+  background: var(--msg-mine-bg, #1a6c3c);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+.message-item .bubble {
+  background: var(--msg-other-bg, #1a1f2e);
+  border-bottom-left-radius: 4px;
+}
+
+/* Bubble meta (time+ticks inside outgoing bubble) */
+.bubble-meta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  justify-content: flex-end;
+  margin-top: 4px;
+  font-size: 0.7rem;
+  opacity: 0.7;
+}
+.bubble-meta time {
+  color: inherit;
+}
+.bubble-meta .message-ticks {
+  font-size: 0.7rem;
+}
+
+/* Item 6: Apps - display all slots properly */
+.apps-workspace .apps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+  padding: 16px;
+}
+
+/* Item 7: Group Resources */
+.inspector-section .resource-list button {
+  cursor: pointer;
+}
+.inspector-section .resource-open-button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: rgba(255,255,255,0.05);
+  border-radius: 8px;
+  color: var(--text, #ddd);
+  text-align: left;
+  font-size: 0.9rem;
+  transition: background 0.15s;
+}
+.inspector-section .resource-open-button:hover {
+  background: rgba(255,255,255,0.1);
+}
+.resource-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--accent, #2d7e4f);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+.resource-list { display: flex; flex-direction: column; gap: 6px; }
+
+/* Item 9: Android backdrop - hide when not needed */
+.touch-ui .attach-backdrop {
+  background: rgba(0,0,0,0.4);
+  backdrop-filter: blur(2px);
+}
+.touch-ui:not(.attach-menu-open) .attach-backdrop {
+  display: none;
+}
+/* On Android/touch main view, no decorative backdrop covering touch areas */
+.touch-ui .app > .global-search-overlay,
+.touch-ui .app > .modal {
+  z-index: 1000;
+}
+.touch-ui main {
+  touch-action: pan-y pinch-zoom;
+}
+
+/* Item 10: Call hides dock & composer */
+[data-call-active="true"] .viewport-composer,
+[data-call-active="true"] .viewport-dock {
+  display: none !important;
+}
+
+/* Item 11: Touch UI landscape support */
+.orientation-landscape.touch-ui .app {
+  flex-direction: row;
+}
+.touch-ui.orientation-landscape .chat-sidebar {
+  width: var(--chats-width, 320px);
+  max-width: 40vw;
+}
+.touch-ui.orientation-landscape .messages {
+  height: calc(100vh - 120px);
+}
+.touch-ui.orientation-landscape .mobile-main-dock {
+  display: none;
+}
+/* When Touch UI orientation guard is skipped */
+.device-phone.orientation-landscape .messages {
+  height: calc(100vh - 50px);
+}
+.orientation-guard-hidden .rotate-device-overlay {
+  display: none !important;
+}
+
+/* Item 12: Call overlay in Touch UI */
+.touch-ui .call-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: var(--bg-primary, #0d1117);
+}
+
+/* Item 13: Disk usage - display area */
+.storage-usage-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+.storage-usage-bar .bar {
+  flex: 1;
+  height: 4px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.storage-usage-bar .fill {
+  height: 100%;
+  background: var(--accent, #2d7e4f);
+  border-radius: 2px;
+  transition: width 0.3s;
+}
+.storage-usage-bar .used-text {
+  white-space: nowrap;
+  color: var(--text-secondary, #999);
+}
+
+/* Item 14: Sound - ensure audio context stays alive */
+audio {
+  -webkit-playsinline: 1;
+  playsinline: true;
+}
+
+/* Bubble messages - right side for outgoing */
+.message-item.mine {
+  justify-content: flex-end;
+}
+.message-item {
+  display: flex;
+  margin-bottom: 6px;
+}
+.message-item .bubble {
+  max-width: 75%;
+  padding: 8px 12px;
+  border-radius: 12px;
+  word-break: break-word;
+  position: relative;
+}
+
+/* Contact card view/edit mode */
+.contact-pref-view {
+  padding: 8px 12px;
+}
+.contact-pref-view .pref-row {
+  display: flex;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.contact-pref-view .pref-label {
+  width: 80px;
+  flex-shrink: 0;
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: var(--text-secondary, #999);
+}
+.contact-pref-view .pref-value {
+  font-size: 0.9rem;
+}
+.contact-pref-edit .field-row {
+  margin-bottom: 10px;
+}
+.contact-pref-edit .field-row label {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-secondary, #999);
+  margin-bottom: 4px;
+}
+.contact-pref-edit .field-row input,
+.contact-pref-edit .field-row textarea,
+.contact-pref-edit .field-row select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 8px;
+  background: rgba(0,0,0,0.2);
+  color: #fff;
+  font-size: 0.9rem;
+}
+.contact-pref-edit .field-row textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+.contact-pref-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+.contact-pref-actions button {
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: none;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.contact-pref-actions button.primary {
+  background: var(--accent, #2d7e4f);
+  color: #fff;
+}
+.contact-pref-actions button.secondary {
+  background: rgba(255,255,255,0.1);
+  color: #ccc;
+}
+.contact-pref-actions button.danger {
+  background: rgba(255,50,50,0.2);
+  color: #f66;
+}
+/* Mobile info panel contact card */
+.mobile-section .contact-pref-view,
+.mobile-section .contact-pref-edit {
+  padding: 0;
+}

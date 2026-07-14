@@ -753,6 +753,19 @@ def require_storage_item(item_id: int, u: User, s: Session) -> StorageItem:
         raise HTTPException(404, "Элемент хранилища не найден")
     return item
 
+def storage_build_relative_path(s: Session, item: StorageItem, root_item: StorageItem) -> str:
+    parts = []
+    cur = item
+    while cur is not None and cur.id != root_item.id:
+        parts.append(cur.name)
+        if cur.parent_id is not None:
+            cur = s.get(StorageItem, cur.parent_id)
+        else:
+            break
+    parts.reverse()
+    return "/".join(parts) if parts else item.name
+
+
 def storage_descendants(s: Session, owner_id: int, parent_id: int) -> list[StorageItem]:
     result = []
     children = s.query(StorageItem).filter_by(owner_id=owner_id, parent_id=parent_id).all()
@@ -885,7 +898,11 @@ def storage_share(item_id: int, request: Request, u=Depends(current_user), s: Se
         with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
             for child in descendants:
                 source = UPLOAD_DIR / child.storage_name
-                if source.exists(): zf.write(source, arcname=child.name)
+                if source.exists():
+                    # Build relative path preserving folder structure
+                    rel = storage_build_relative_path(s, child, item)
+                    arc = (item.name + "/" + rel) if rel else child.name
+                    zf.write(source, arcname=arc)
         original_name = f"{item.name}.zip"; mime_type = "application/zip"; size = zip_path.stat().st_size
     else:
         storage_name = item.storage_name; original_name = item.name; mime_type = item.mime_type; size = item.size_bytes
