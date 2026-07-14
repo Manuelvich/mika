@@ -90,7 +90,88 @@ const moscowTime=value=>value?new Date(value).toLocaleTimeString('ru-RU',{hour:'
 const moscowParts=value=>Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:MOSCOW_TZ,year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date(value)).filter(x=>x.type!=='literal').map(x=>[x.type,x.value]));
 const lastSeenText=u=>{if(!u)return'';if(u.online)return'в сети';if(!u.last_seen)return'не в сети';const now=moscowParts(Date.now()),seen=moscowParts(u.last_seen),dayNow=Date.UTC(+now.year,+now.month-1,+now.day),daySeen=Date.UTC(+seen.year,+seen.month-1,+seen.day),days=Math.round((dayNow-daySeen)/86400000),time=moscowTime(u.last_seen);if(days===0)return`был(а) сегодня в ${time}`;if(days===1)return`был(а) вчера в ${time}`;return`был(а) ${new Date(u.last_seen).toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:seen.year===now.year?undefined:'numeric',timeZone:MOSCOW_TZ})} в ${time}`};
 const b64ToArray=s=>{const p='='.repeat((4-s.length%4)%4),b=atob((s+p).replace(/-/g,'+').replace(/_/g,'/'));return Uint8Array.from([...b].map(c=>c.charCodeAt(0)))};
-const Icon=({name,size=20})=>{const paths={phone:<><path d="M7.2 3.5 9 7.8 6.8 9.4a15.5 15.5 0 0 0 7.8 7.8L16.2 15l4.3 1.8v3.1c0 .9-.7 1.6-1.6 1.6C9.8 21.5 2.5 14.2 2.5 5.1c0-.9.7-1.6 1.6-1.6h3.1Z"/></>,video:<><rect x="3" y="6" width="13" height="12" rx="3"/><path d="m16 10 5-3v10l-5-3Z"/></>,send:<><path d="m3 3 18 9-18 9 4-9-4-9Z"/><path d="M7 12h14"/></>,switch:<><path d="M7 7h10l-2.5-2.5M17 17H7l2.5 2.5"/><path d="M17 7l-2.5 2.5M7 17l2.5-2.5"/></>,mic:<><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></>,camera:<><rect x="3" y="6" width="18" height="13" rx="3"/><circle cx="12" cy="12.5" r="3.5"/><path d="m8 6 1.2-2h5.6L16 6"/></>,hangup:<><path d="M5 15c4.5-4 9.5-4 14 0"/><path d="m5 15-2 3M19 15l2 3"/></>,bell:<><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></>,info:<><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/></>,cloud:<><path d="M17.5 19H7a5 5 0 0 1-.8-9.94A7 7 0 0 1 19.7 11.5 3.8 3.8 0 0 1 17.5 19Z"/></>,star:<><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9L12 3Z"/></>,folder:<><path d="M3 6.5h6l2 2h10v10.5H3Z"/></>,settings:<><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.12 2.12-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.55V20.3h-3v-.09a1.7 1.7 0 0 0-1.03-1.55 1.7 1.7 0 0 0-1.88.34l-.06.06-2.12-2.12.06-.06A1.7 1.7 0 0 0 7 15a1.7 1.7 0 0 0-1.55-1.03H5.3v-3h.15A1.7 1.7 0 0 0 7 9.94a1.7 1.7 0 0 0-.34-1.88L6.6 8l2.12-2.12.06.06a1.7 1.7 0 0 0 1.88.34A1.7 1.7 0 0 0 11.7 4.7V4.6h3v.1a1.7 1.7 0 0 0 1.03 1.55 1.7 1.7 0 0 0 1.88-.34l.06-.06L19.8 8l-.06.06a1.7 1.7 0 0 0-.34 1.88 1.7 1.7 0 0 0 1.55 1.03h.15v3h-.15A1.7 1.7 0 0 0 19.4 15Z"/></>,logout:<><path d="M10 17l5-5-5-5M15 12H3"/><path d="M14 4h6v16h-6"/></>,message:<><path d="M4 5h16v11H8l-4 4Z"/></>,link:<><path d="M10 13a5 5 0 0 0 7.5.5l2-2a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7.5-.5l-2 2a5 5 0 0 0 7 7l1-1"/></>,paperclip:<path d="m9 12 6-6a3 3 0 0 1 4 4l-8 8a5 5 0 0 1-7-7l8-8"/>,more:<><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></>,image:<><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 20"/></>,file:<><path d="M6 3h8l4 4v14H6Z"/><path d="M14 3v5h5"/></>,search:<><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></>,apps:<><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></>,dockChat:<><path d="M4 5.5h16v11H9l-5 3.5V5.5Z"/><circle cx="8.5" cy="11" r=".7" fill="currentColor" stroke="none"/><circle cx="12" cy="11" r=".7" fill="currentColor" stroke="none"/><circle cx="15.5" cy="11" r=".7" fill="currentColor" stroke="none"/></>,dockDisk:<><path d="M17.8 18.5H7.2a4.7 4.7 0 0 1-.7-9.35A6.4 6.4 0 0 1 18.8 11a3.8 3.8 0 0 1-1 7.5Z"/><path d="M12 11.5v5M9.8 13.8 12 16l2.2-2.2"/></>,dockApps:<><rect x="3.5" y="3.5" width="6.5" height="6.5" rx="2.1"/><rect x="14" y="3.5" width="6.5" height="6.5" rx="2.1"/><rect x="3.5" y="14" width="6.5" height="6.5" rx="2.1"/><rect x="14" y="14" width="6.5" height="6.5" rx="2.1"/></>,dockStar:<><path d="m12 3.2 2.65 5.38 5.94.86-4.3 4.2 1.02 5.91L12 16.75l-5.31 2.8 1.02-5.91-4.3-4.2 5.94-.86L12 3.2Z"/></>,dockProfile:<><circle cx="12" cy="8" r="3.2"/><path d="M5.5 20c.7-4 3-6 6.5-6s5.8 2 6.5 6"/></>};return <svg className={'icon '+(String(name).startsWith('dock')?'dock-icon':'')} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={String(name).startsWith('dock')?2.05:1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name]}</svg>};
+const Icon=({name,size=20})=>{const paths={phone:<>
+<path d="M7.2 3.5 9 7.8 6.8 9.4a15.5 15.5 0 0 0 7.8 7.8L16.2 15l4.3 1.8v3.1c0 .9-.7 1.6-1.6 1.6C9.8 21.5 2.5 14.2 2.5 5.1c0-.9.7-1.6 1.6-1.6h3.1Z"/>
+</>,video:<>
+<rect x="3" y="6" width="13" height="12" rx="3"/>
+<path d="m16 10 5-3v10l-5-3Z"/>
+</>,send:<>
+<path d="m3 3 18 9-18 9 4-9-4-9Z"/>
+<path d="M7 12h14"/>
+</>,switch:<>
+<path d="M7 7h10l-2.5-2.5M17 17H7l2.5 2.5"/>
+<path d="M17 7l-2.5 2.5M7 17l2.5-2.5"/>
+</>,mic:<>
+<rect x="9" y="3" width="6" height="11" rx="3"/>
+<path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>
+</>,camera:<>
+<rect x="3" y="6" width="18" height="13" rx="3"/>
+<circle cx="12" cy="12.5" r="3.5"/>
+<path d="m8 6 1.2-2h5.6L16 6"/>
+</>,hangup:<>
+<path d="M5 15c4.5-4 9.5-4 14 0"/>
+<path d="m5 15-2 3M19 15l2 3"/>
+</>,bell:<>
+<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/>
+<path d="M10 21h4"/>
+</>,info:<>
+<circle cx="12" cy="12" r="9"/>
+<path d="M12 11v6M12 7h.01"/>
+</>,cloud:<>
+<path d="M17.5 19H7a5 5 0 0 1-.8-9.94A7 7 0 0 1 19.7 11.5 3.8 3.8 0 0 1 17.5 19Z"/>
+</>,star:<>
+<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9L12 3Z"/>
+</>,folder:<>
+<path d="M3 6.5h6l2 2h10v10.5H3Z"/>
+</>,settings:<>
+<circle cx="12" cy="12" r="3"/>
+<path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.12 2.12-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.55V20.3h-3v-.09a1.7 1.7 0 0 0-1.03-1.55 1.7 1.7 0 0 0-1.88.34l-.06.06-2.12-2.12.06-.06A1.7 1.7 0 0 0 7 15a1.7 1.7 0 0 0-1.55-1.03H5.3v-3h.15A1.7 1.7 0 0 0 7 9.94a1.7 1.7 0 0 0-.34-1.88L6.6 8l2.12-2.12.06.06a1.7 1.7 0 0 0 1.88.34A1.7 1.7 0 0 0 11.7 4.7V4.6h3v.1a1.7 1.7 0 0 0 1.03 1.55 1.7 1.7 0 0 0 1.88-.34l.06-.06L19.8 8l-.06.06a1.7 1.7 0 0 0-.34 1.88 1.7 1.7 0 0 0 1.55 1.03h.15v3h-.15A1.7 1.7 0 0 0 19.4 15Z"/>
+</>,logout:<>
+<path d="M10 17l5-5-5-5M15 12H3"/>
+<path d="M14 4h6v16h-6"/>
+</>,message:<>
+<path d="M4 5h16v11H8l-4 4Z"/>
+</>,link:<>
+<path d="M10 13a5 5 0 0 0 7.5.5l2-2a5 5 0 0 0-7-7l-1 1"/>
+<path d="M14 11a5 5 0 0 0-7.5-.5l-2 2a5 5 0 0 0 7 7l1-1"/>
+</>,paperclip:<path d="m9 12 6-6a3 3 0 0 1 4 4l-8 8a5 5 0 0 1-7-7l8-8"/>,more:<>
+<circle cx="5" cy="12" r="1"/>
+<circle cx="12" cy="12" r="1"/>
+<circle cx="19" cy="12" r="1"/>
+</>,image:<>
+<rect x="3" y="4" width="18" height="16" rx="2"/>
+<circle cx="9" cy="9" r="2"/>
+<path d="m21 15-5-5L5 20"/>
+</>,file:<>
+<path d="M6 3h8l4 4v14H6Z"/>
+<path d="M14 3v5h5"/>
+</>,search:<>
+<circle cx="11" cy="11" r="7"/>
+<path d="m20 20-4-4"/>
+</>,apps:<>
+<rect x="3" y="3" width="7" height="7" rx="2"/>
+<rect x="14" y="3" width="7" height="7" rx="2"/>
+<rect x="3" y="14" width="7" height="7" rx="2"/>
+<rect x="14" y="14" width="7" height="7" rx="2"/>
+</>,dockChat:<>
+<path d="M4 5.5h16v11H9l-5 3.5V5.5Z"/>
+<circle cx="8.5" cy="11" r=".7" fill="currentColor" stroke="none"/>
+<circle cx="12" cy="11" r=".7" fill="currentColor" stroke="none"/>
+<circle cx="15.5" cy="11" r=".7" fill="currentColor" stroke="none"/>
+</>,dockDisk:<>
+<path d="M17.8 18.5H7.2a4.7 4.7 0 0 1-.7-9.35A6.4 6.4 0 0 1 18.8 11a3.8 3.8 0 0 1-1 7.5Z"/>
+<path d="M12 11.5v5M9.8 13.8 12 16l2.2-2.2"/>
+</>,dockApps:<>
+<rect x="3.5" y="3.5" width="6.5" height="6.5" rx="2.1"/>
+<rect x="14" y="3.5" width="6.5" height="6.5" rx="2.1"/>
+<rect x="3.5" y="14" width="6.5" height="6.5" rx="2.1"/>
+<rect x="14" y="14" width="6.5" height="6.5" rx="2.1"/>
+</>,dockStar:<>
+<path d="m12 3.2 2.65 5.38 5.94.86-4.3 4.2 1.02 5.91L12 16.75l-5.31 2.8 1.02-5.91-4.3-4.2 5.94-.86L12 3.2Z"/>
+</>,dockProfile:<>
+<circle cx="12" cy="8" r="3.2"/>
+<path d="M5.5 20c.7-4 3-6 6.5-6s5.8 2 6.5 6"/>
+</>};return <svg className={'icon '+(String(name).startsWith('dock')?'dock-icon':'')} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={String(name).startsWith('dock')?2.05:1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name]}</svg>};
 const Avatar=({user,name,className='chat-avatar'})=>{const label=(user?.display_name||user?.username||name||'?').trim();return <span className={className+(user?.avatar_url?' has-photo':'')}>{user?.avatar_url?<img src={user.avatar_url} alt=""/>:label[0]?.toUpperCase()}</span>};
 const MessageTicks=({status})=><span className={'message-ticks '+(status==='read'?'read':'')} aria-label={status==='read'?'Прочитано':status==='delivered'?'Доставлено':'Отправлено'}>{status==='sent'?<span>✓</span>:<><span>✓</span><span>✓</span></>}</span>;
 const LinkifiedText=({text=''})=>{const parts=String(text).split(/((?:https?:\/\/|\/share\/)[^\s]+)/gi);return <>{parts.map((part,i)=>{if(!/^(?:https?:\/\/|\/share\/)/i.test(part))return <React.Fragment key={i}>{part}</React.Fragment>;const href=part.startsWith('/share/')?`${location.origin}${part}`:part;return <a key={i} className="message-link" href={href} target="_blank" rel="noreferrer">{part}</a>})}</>};
@@ -768,7 +849,189 @@ useEffect(()=>{
 if(user?.id)localStorage.userId=String(user.id);if(!user)return <Auth done={setUser}/>;
 const other=chat&&!chat.is_group?chat.members.find(m=>m.id!==user.id):null;
 const composerView=chat?<footer ref={composerRef} className="composer-wrap"><div className="composer"><button className="attach" disabled={chat.can_write===false} onClick={()=>setMobileTab('attachments')}><Icon name="paperclip" size={22}/></button>{selectedFile&&<div className="selected-file"><span>{selectedFile.name}</span><button onClick={()=>setSelectedFile(null)}>×</button></div>}{shareUploading&&<div className="paste-link-hint share-uploading"><span>Файлы загружаются</span><b>Создаём одну ссылку…</b></div>}<textarea rows="1" disabled={chat.can_write===false} value={text} onChange={e=>setText(e.target.value)} onPaste={handleComposerPaste} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}}} placeholder={chat.can_write===false?"Гостям отправка сообщений недоступна":"Сообщение"}/><button className="send" onClick={send} disabled={sending||shareUploading||chat.can_write===false}><Icon name="send" size={20}/></button></div></footer>:null;
-return <div className={`app ui-${uiMode} device-${device.type} orientation-${device.orientation} ${device.standalone?'standalone':''} ${device.touch?'touch-ui':''} ${mobileChat?'mobile-chat-open':''} ${searchActive?'search-active':''} ${showGroupEdit?'group-edit-open':''} ${showInspector?'inspector-open':''} ${showAttach?'attach-menu-open':''}`}><nav className="desktop-rail"><button className="rail-avatar" onClick={()=>setShowProfile(true)}><Avatar user={user} className="avatar"/></button><div className="rail-nav"><button className={activeSection==='chats'?'active':''} title="Чаты" onClick={()=>setActiveSection('chats')}><span className="rail-chat-dot"/></button><button className={activeSection==='cloud'?'active':''} title="Моё пространство" onClick={()=>setActiveSection('cloud')}><Icon name="cloud" size={24}/></button><button className={activeSection==='apps'?'active':''} title="Приложения" onClick={()=>setActiveSection('apps')}><Icon name="apps" size={24}/></button><button className={activeSection==='favorites'?'active':''} title="Избранное" onClick={()=>setActiveSection('favorites')}><Icon name="star" size={24}/></button></div><div className="rail-bottom"><button title="Настройки" onClick={()=>setShowProfile(true)}><Icon name="settings" size={24}/></button></div></nav>{activeSection!=='chats'&&<WorkspacePanel section={activeSection} user={user} onOpenApp={setEmbeddedApp} onEditApp={setHomeLinkSlot} onBack={()=>setActiveSection('chats')}/>}<aside className={`chat-sidebar ${activeSection!=='chats'?'workspace-hidden':''}`}><div className="topbar"><button className="profile-button" onClick={()=>setShowProfile(true)}><Avatar user={user} className="avatar"/><span className="profile-copy"><b>{user.display_name||user.username}</b><small>@{user.username}</small></span></button><div className="home-quick-links-mobile-hide"><HomeQuickLinks user={user} onEdit={setHomeLinkSlot}/></div><div className="top-actions"><button className="storage-button mobile-top-cloud" title="Личное хранилище" aria-label="Личное хранилище" onClick={()=>setActiveSection('cloud')}><Icon name="cloud" size={20}/></button><button className="notification-button" title="Уведомления" aria-label="Уведомления" onClick={enablePush}><Icon name="bell" size={20}/></button><button title="Новый чат" onClick={()=>setShowNew(true)}>＋</button></div></div><>{!searchActive&&<div className="search-box"><span>⌕</span><input value="" readOnly onPointerDown={()=>{setSearchActive(true);document.documentElement.dataset.searchActive='true';document.documentElement.style.setProperty('--app-height',`${window.innerHeight}px`);requestAnimationFrame(()=>searchInput.current?.focus())}} placeholder="Поиск"/></div>}</>{pushInfo&&<div className="push-box"><span>{pushInfo}</span><button onClick={testPush}>Тест</button></div>}<CategorizedChatList chats={chats} chat={chat} user={user} open={open}/></aside><main className={activeSection!=='chats'?'workspace-hidden':''}>{chat?<><header className="chat-header"><button className="back" onClick={closeChat}>‹</button><button className={'group-avatar-button '+(chat.is_group&&chat.can_edit?'editable':'')} onClick={()=>chat.is_group&&chat.can_edit&&setShowGroupEdit(true)} title={chat.is_group&&chat.can_edit?'Изменить группу':''}><Avatar user={chat.is_group?{display_name:chat.name,avatar_url:chat.avatar_url}:other} name={chat.name}/></button><div className="chat-heading"><b>{chat.name}</b><small>{chat.is_group?`${chat.members.filter(m=>m.online).length} в сети из ${chat.members.length}`:(lastSeenText(other)||'статус уточняется…')}</small></div><GroupQuickLinks chat={chat} onEdit={setQuickLinkSlot} onMore={()=>setShowAllQuickLinks(true)}/><div className="call-header-actions"><button title={chat.can_call===false?'Гостям звонки недоступны':'Аудиозвонок'} disabled={chat.can_call===false} onClick={()=>window.__startCall?.('audio')}><Icon name="phone" size={22}/></button><button title={chat.can_call===false?'Гостям звонки недоступны':'Видеозвонок'} disabled={chat.can_call===false} onClick={()=>window.__startCall?.('video')}><Icon name="video" size={23}/></button><button title="Информация" onClick={()=>setShowInspector(v=>!v)}><Icon name="info" size={23}/></button></div></header>{chatSearchOpen&&<div className="chat-search-bar"><input autoFocus value={chatSearchQuery} onChange={e=>setChatSearchQuery(e.target.value)} placeholder="Поиск в этом чате"/><span>{chatSearchResults.length?`${chatSearchResults.length} найдено`:chatSearchQuery?'Нет совпадений':''}</span><button onClick={()=>{setChatSearchOpen(false);setChatSearchQuery('');setChatSearchResults([])}}>×</button>{chatSearchResults.length>0&&<div className="chat-search-results">{chatSearchResults.map(m=><button key={m.id} onClick={()=>document.getElementById(`message-${m.id}`)?.scrollIntoView({behavior:'smooth',block:'center'})}><b>{m.sender.display_name||m.sender.username}</b><span>{m.text||m.file_name}</span><time>{moscowTime(m.created_at)}</time></button>)}</div>}</div>}<section className={`messages ${mobileTab!=='chat'?'mobile-tab-hidden':''}`} ref={messagesRef}>{msgs.map(m=>{const isMine=m.sender.id===user.id;return <div className={'message-item '+(isMine?'mine':'')} key={m.id}><div id={`message-${m.id}`} className={'bubble '+(isMine?'mine':'')+(chatSearchResults.some(x=>x.id===m.id)?' search-hit':'')}>{chat.is_group&&!isMine&&<div className="sender">{m.sender.display_name||m.sender.username}</div>}{m.text&&<div className="message-text"><LinkifiedText text={m.text}/></div>}{m.file_url&&(m.mime_type||'').startsWith('image/')?<a href={m.file_url} target="_blank" rel="noreferrer"><img src={m.file_url}/></a>:m.file_url?<a className="file-card" href={m.file_url} target="_blank" rel="noreferrer">📎 <span>{m.file_name}</span></a>:null}{isMine&&<div className="bubble-meta"><time>{moscowTime(m.created_at)}</time><MessageTicks status={m.status||'sent'}/></div>}</div>}</div>)}<div ref={bottom}/></section><input ref={imageFile} hidden type="file" accept="image/*,video/*" onChange={e=>setSelectedFile(e.target.files?.[0]||null)}/><input ref={file} hidden type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.zip,.rar,text/*,application/*" onChange={e=>setSelectedFile(e.target.files?.[0]||null)}/><input ref={shareFile} hidden type="file" multiple onChange={e=>createShareLink(e.target.files)}/><MobileChatPanel tab={mobileTab} chat={chat} msgs={msgs} user={user} onOpenLink={link=>setEmbeddedApp({title:link.title||link.name||'Ресурс',url:link.url})} onEditLink={i=>setQuickLinkSlot(i)} onPhoto={()=>imageFile.current?.click()} onFile={()=>file.current?.click()} onShare={()=>shareFile.current?.click()} onSearch={()=>setChatSearchOpen(true)} onInfo={()=>setShowInspector(true)} onGroupEdit={()=>setShowGroupEdit(true)} onPush={enablePush} onContactSaved={updated=>{setChat(updated);setChats(xs=>xs.map(x=>x.id===updated.id?updated:x))}}/>{mobileTab==='chat'&&!callActive&&(device.touch?createPortal(React.cloneElement(composerView,{className:'composer-wrap viewport-composer'}),document.body):composerView)}<MobileChatTaskbar tab={mobileTab} setTab={setMobileTab} callActive={callActive}/></>:<div className="empty"><div className="empty-mark">M</div><h2>Messenger</h2><p>Выберите чат или создайте новый</p></div>}</main>{activeSection==='chats'&&chat&&showInspector&&<aside className="desktop-inspector"><div className="inspector-head"><b>Информация</b><button onClick={()=>setShowInspector(false)}>×</button></div><div className="inspector-profile"><Avatar user={chat.is_group?{display_name:chat.name,avatar_url:chat.avatar_url}:other} name={chat.name} className="inspector-avatar"/><div><b>{chat.name}</b><small>{chat.is_group?`Группа · ${chat.members.length} участника`:(lastSeenText(other)||'статус уточняется…')}</small></div></div>{!chat.is_group&&<ContactPreferencesField chat={chat} onSaved={updated=>{setChat(updated);setChats(xs=>xs.map(x=>x.id===updated.id?updated:x))}}/>}{chat.is_group&&<section className="inspector-section"><div className="inspector-title"><b>Участники</b><span>{chat.members.length}</span></div><div className="member-avatars">{chat.members.slice(0,5).map(m=><Avatar key={m.id} user={m} className="mini-avatar"/>)}{chat.can_manage_members&&<button onClick={()=>setShowGroupEdit(true)}>＋</button>}</div></section>}<section className="inspector-section"><div className="inspector-title"><b>Ресурсы</b>{chat.can_edit_links&&<button onClick={()=>setQuickLinkSlot(0)}>＋</button>}</div><div className="resource-list">{(chat.quick_links||[]).filter(Boolean).map((l,i)=><button key={i} className="resource-open-button" onClick={()=>setEmbeddedApp({title:l.title||l.name||'Ресурс',url:l.url})}><span className="resource-icon">{(l.title||l.name||'С')[0].toUpperCase()}</span><span>{l.title||l.name||'Ссылка'}</span><b>›</b></button>)}{!(chat.quick_links||[]).filter(Boolean).length&&<small>Пока нет ресурсов</small>}</div></section><section className="inspector-section"><div className="inspector-title"><b>Медиа</b></div><button className="inspector-row"><span>Фото</span><b>{msgs.filter(m=>(m.mime_type||'').startsWith('image/')).length} ›</b></button><button className="inspector-row"><span>Документы</span><b>{msgs.filter(m=>m.file_url&&!(m.mime_type||'').startsWith('image/')).length} ›</b></button><button className="inspector-row"><span>Ссылки</span><b>{msgs.filter(m=>/(https?:\/\/|\/share\/)/.test(m.text||'')).length} ›</b></button></section><section className="inspector-section"><div className="inspector-title"><b>Настройки чата</b></div><button className="inspector-row"><span>Уведомления</span><span className="fake-toggle on"/></button></section></aside>}{searchActive&&<div className="global-search-overlay" onPointerDown={closeGlobalSearch}><div className="global-search-shell"><div className="search-box active-global" onPointerDown={e=>e.stopPropagation()}><span>⌕</span><input ref={searchInput} autoFocus value={searchQuery} onChange={e=>setSearchQuery(e.target.value)} placeholder="Поиск"/><button onClick={closeGlobalSearch}>×</button></div><div onPointerDown={e=>e.stopPropagation()}><SearchResults query={searchQuery} kind={searchKind} setKind={setSearchKind} results={searchResults} busy={searchBusy} historyItems={searchHistory} onHistory={q=>{setSearchQuery(q);searchInput.current?.focus()}} onOpenMessage={m=>{closeGlobalSearch();openSearchMessage(m)}} onOpenChat={c=>{closeGlobalSearch();open(c)}} onOpenUser={u=>{closeGlobalSearch();openSearchUser(u)}}/></div></div></div>}{showAttach&&<><button className="attach-backdrop" aria-label="Закрыть меню вложений" onPointerDown={e=>{e.preventDefault();e.stopPropagation();setShowAttach(false)}} onClick={e=>{e.preventDefault();e.stopPropagation();setShowAttach(false)}}/><div className="attach-menu attach-menu-global" onPointerDown={e=>e.stopPropagation()} onClick={e=>e.stopPropagation()}><button onClick={()=>{imageFile.current?.click();setShowAttach(false)}}>Фото или видео</button><button onClick={()=>{file.current?.click();setShowAttach(false)}}>Документ</button><button onClick={()=>{setShowAttach(false);shareFile.current?.click()}}>Отправить ссылку</button></div></>}{showGroupEdit&&chat?.is_group&&<GroupEditModal chat={chat} close={()=>setShowGroupEdit(false)} saved={c=>{setChat(c);setChats(xs=>xs.map(x=>x.id===c.id?c:x));setShowGroupEdit(false)}}/>}{showAllQuickLinks&&chat&&<QuickLinksPanel chat={chat} close={()=>setShowAllQuickLinks(false)} onEdit={i=>{setShowAllQuickLinks(false);setQuickLinkSlot(i)}}/>}{quickLinkSlot!==null&&chat&&<QuickLinkModal chat={chat} slot={quickLinkSlot} close={()=>setQuickLinkSlot(null)} saved={c=>{setChat(c);setChats(xs=>xs.map(x=>x.id===c.id?c:x));setQuickLinkSlot(null)}}/>}{homeLinkSlot!==null&&<HomeLinkModal user={user} slot={homeLinkSlot} close={()=>setHomeLinkSlot(null)} saved={u=>{setUser(u);setHomeLinkSlot(null)}}/>}{showProfile&&<ProfileModal user={user} close={()=>setShowProfile(false)} saved={u=>{setUser(u);setShowProfile(false);loadChats()}}/>}{showNew&&<NewChat close={()=>setShowNew(false)} created={c=>{setShowNew(false);loadChats();open(c)}}/>}{manualLinkOpen&&<div className="modal manual-link-modal" onPointerDown={closeManualLinkDialog}><div className="modal-card glass-card" onPointerDown={e=>e.stopPropagation()}><div className="modal-head"><h3>Вставить ссылку</h3><button type="button" aria-label="Закрыть" onClick={closeManualLinkDialog}>×</button></div><p className="manual-link-copy">iPhone не разрешил автоматически прочитать буфер. Вставьте скопированную ссылку сюда:</p><input autoFocus value={manualLinkValue} onChange={e=>{setManualLinkValue(e.target.value);setManualLinkError('')}} onPaste={e=>{const v=e.clipboardData?.getData('text/plain')||'';setManualLinkValue(v);setManualLinkError('')}} placeholder="https://files.igorson.xyz/…" autoCapitalize="none" autoCorrect="off" inputMode="url"/>{manualLinkError&&<div className="error">{manualLinkError}</div>}<div className="manual-link-actions"><button type="button" className="secondary" onClick={closeManualLinkDialog}>Отмена</button><button type="button" className="primary" onClick={submitManualLink}>Вставить</button></div></div></div>}{embeddedApp&&<EmbeddedAppWindow app={embeddedApp} close={()=>setEmbeddedApp(null)}/>}{!chat&&<MobileMainDock section={activeSection} setSection={setActiveSection} onSettings={()=>setShowProfile(true)} callActive={callActive}/>}<OrientationGuard/><CallLayer user={user} ws={wsRef} chat={chat} invite={invite} setInvite={setInvite} onCallActive={setCallActive} clearRequestedCall={()=>{closeCallNotifications();setRequestedCallId(null);const u=new URL(location.href);u.searchParams.delete('call');history.replaceState(null,'',u.pathname+u.search)}}/></div>}
+
+function __renderMsg(m){const isMine=m.sender.id===user.id;return(<div className={"message-item "+(isMine?"mine":"")} key={m.id}><div id={`message-${m.id}`} className={"bubble "+(isMine?"mine":"")+(chatSearchResults.some(x=>x.id===m.id)?" search-hit":"")}>{chat.is_group&&!isMine&&<div className="sender">{m.sender.display_name||m.sender.username}</div>}{m.text&&<div className="message-text"><LinkifiedText text={m.text}/></div>}{m.file_url&&(m.mime_type||"").startsWith("image/")?<a href={m.file_url} target="_blank" rel="noreferrer"><img src={m.file_url}/></a>:m.file_url?<a className="file-card" href={m.file_url} target="_blank" rel="noreferrer">📎 <span>{m.file_name}</span></a>:null}{isMine&&<div className="bubble-meta"><time>{moscowTime(m.created_at)}</time><MessageTicks status={m.status||"sent"}/></div>}</div></div>);}
+return <div className={`app ui-${uiMode} device-${device.type} orientation-${device.orientation} ${device.standalone?'standalone':''} ${device.touch?'touch-ui':''} ${mobileChat?'mobile-chat-open':''} ${searchActive?'search-active':''} ${showGroupEdit?'group-edit-open':''} ${showInspector?'inspector-open':''} ${showAttach?'attach-menu-open':''}`}>
+<nav className="desktop-rail">
+<button className="rail-avatar" onClick={()=>setShowProfile(true)}>
+<Avatar user={user} className="avatar"/>
+</button>
+<div className="rail-nav">
+<button className={activeSection==='chats'?'active':''} title="Чаты" onClick={()=>setActiveSection('chats')}>
+<span className="rail-chat-dot"/>
+</button>
+<button className={activeSection==='cloud'?'active':''} title="Моё пространство" onClick={()=>setActiveSection('cloud')}>
+<Icon name="cloud" size={24}/>
+</button>
+<button className={activeSection==='apps'?'active':''} title="Приложения" onClick={()=>setActiveSection('apps')}>
+<Icon name="apps" size={24}/>
+</button>
+<button className={activeSection==='favorites'?'active':''} title="Избранное" onClick={()=>setActiveSection('favorites')}>
+<Icon name="star" size={24}/>
+</button>
+</div>
+<div className="rail-bottom">
+<button title="Настройки" onClick={()=>setShowProfile(true)}>
+<Icon name="settings" size={24}/>
+</button>
+</div>
+</nav>{activeSection!=='chats'&&<WorkspacePanel section={activeSection} user={user} onOpenApp={setEmbeddedApp} onEditApp={setHomeLinkSlot} onBack={()=>setActiveSection('chats')}/>}<aside className={`chat-sidebar ${activeSection!=='chats'?'workspace-hidden':''}`}>
+<div className="topbar">
+<button className="profile-button" onClick={()=>setShowProfile(true)}>
+<Avatar user={user} className="avatar"/>
+<span className="profile-copy">
+<b>{user.display_name||user.username}</b>
+<small>@{user.username}</small>
+</span>
+</button>
+<div className="home-quick-links-mobile-hide">
+<HomeQuickLinks user={user} onEdit={setHomeLinkSlot}/>
+</div>
+<div className="top-actions">
+<button className="storage-button mobile-top-cloud" title="Личное хранилище" aria-label="Личное хранилище" onClick={()=>setActiveSection('cloud')}>
+<Icon name="cloud" size={20}/>
+</button>
+<button className="notification-button" title="Уведомления" aria-label="Уведомления" onClick={enablePush}>
+<Icon name="bell" size={20}/>
+</button>
+<button title="Новый чат" onClick={()=>setShowNew(true)}>＋</button>
+</div>
+</div>
+<>{!searchActive&&<div className="search-box">
+<span>⌕</span>
+<input value="" readOnly onPointerDown={()=>{setSearchActive(true);document.documentElement.dataset.searchActive='true';document.documentElement.style.setProperty('--app-height',`${window.innerHeight}px`);requestAnimationFrame(()=>searchInput.current?.focus())}} placeholder="Поиск"/>
+</div>}</>{pushInfo&&<div className="push-box">
+<span>{pushInfo}</span>
+<button onClick={testPush}>Тест</button>
+</div>}<CategorizedChatList chats={chats} chat={chat} user={user} open={open}/>
+</aside>
+<main className={activeSection!=='chats'?'workspace-hidden':''}>{chat?<>
+<header className="chat-header">
+<button className="back" onClick={closeChat}>‹</button>
+<button className={'group-avatar-button '+(chat.is_group&&chat.can_edit?'editable':'')} onClick={()=>chat.is_group&&chat.can_edit&&setShowGroupEdit(true)} title={chat.is_group&&chat.can_edit?'Изменить группу':''}>
+<Avatar user={chat.is_group?{display_name:chat.name,avatar_url:chat.avatar_url}:other} name={chat.name}/>
+</button>
+<div className="chat-heading">
+<b>{chat.name}</b>
+<small>{chat.is_group?`${chat.members.filter(m=>m.online).length} в сети из ${chat.members.length}`:(lastSeenText(other)||'статус уточняется…')}</small>
+</div>
+<GroupQuickLinks chat={chat} onEdit={setQuickLinkSlot} onMore={()=>setShowAllQuickLinks(true)}/>
+<div className="call-header-actions">
+<button title={chat.can_call===false?'Гостям звонки недоступны':'Аудиозвонок'} disabled={chat.can_call===false} onClick={()=>window.__startCall?.('audio')}>
+<Icon name="phone" size={22}/>
+</button>
+<button title={chat.can_call===false?'Гостям звонки недоступны':'Видеозвонок'} disabled={chat.can_call===false} onClick={()=>window.__startCall?.('video')}>
+<Icon name="video" size={23}/>
+</button>
+<button title="Информация" onClick={()=>setShowInspector(v=>!v)}>
+<Icon name="info" size={23}/>
+</button>
+</div>
+</header>{chatSearchOpen&&<div className="chat-search-bar">
+<input autoFocus value={chatSearchQuery} onChange={e=>setChatSearchQuery(e.target.value)} placeholder="Поиск в этом чате"/>
+<span>{chatSearchResults.length?`${chatSearchResults.length} найдено`:chatSearchQuery?'Нет совпадений':''}</span>
+<button onClick={()=>{setChatSearchOpen(false);setChatSearchQuery('');setChatSearchResults([])}}>×</button>{chatSearchResults.length>0&&<div className="chat-search-results">{chatSearchResults.map(m=>
+<button key={m.id} onClick={()=>document.getElementById(`message-${m.id}`)?.scrollIntoView({behavior:'smooth',block:'center'})}>
+<b>{m.sender.display_name||m.sender.username}</b>
+<span>{m.text||m.file_name}</span>
+<time>{moscowTime(m.created_at)}</time>
+</button>)}</div>}</div>}<section className={`messages ${mobileTab!=='chat'?'mobile-tab-hidden':''}`} ref={messagesRef}>{msgs.map(m=>__renderMsg(m))}<div ref={bottom}/>
+</section>
+<input ref={imageFile} hidden type="file" accept="image/*,video/*" onChange={e=>setSelectedFile(e.target.files?.[0]||null)}/>
+<input ref={file} hidden type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.zip,.rar,text/*,application/*" onChange={e=>setSelectedFile(e.target.files?.[0]||null)}/>
+<input ref={shareFile} hidden type="file" multiple onChange={e=>createShareLink(e.target.files)}/>
+<MobileChatPanel tab={mobileTab} chat={chat} msgs={msgs} user={user} onOpenLink={link=>setEmbeddedApp({title:link.title||link.name||'Ресурс',url:link.url})} onEditLink={i=>setQuickLinkSlot(i)} onPhoto={()=>imageFile.current?.click()} onFile={()=>file.current?.click()} onShare={()=>shareFile.current?.click()} onSearch={()=>setChatSearchOpen(true)} onInfo={()=>setShowInspector(true)} onGroupEdit={()=>setShowGroupEdit(true)} onPush={enablePush} onContactSaved={updated=>{setChat(updated);setChats(xs=>xs.map(x=>x.id===updated.id?updated:x))}}/>{mobileTab==='chat'&&!callActive&&(device.touch?createPortal(React.cloneElement(composerView,{className:'composer-wrap viewport-composer'}),document.body):composerView)}<MobileChatTaskbar tab={mobileTab} setTab={setMobileTab} callActive={callActive}/>
+</>:<div className="empty">
+<div className="empty-mark">M</div>
+<h2>Messenger</h2>
+<p>Выберите чат или создайте новый</p>
+</div>}</main>{activeSection==='chats'&&chat&&showInspector&&<aside className="desktop-inspector">
+<div className="inspector-head">
+<b>Информация</b>
+<button onClick={()=>setShowInspector(false)}>×</button>
+</div>
+<div className="inspector-profile">
+<Avatar user={chat.is_group?{display_name:chat.name,avatar_url:chat.avatar_url}:other} name={chat.name} className="inspector-avatar"/>
+<div>
+<b>{chat.name}</b>
+<small>{chat.is_group?`Группа · ${chat.members.length} участника`:(lastSeenText(other)||'статус уточняется…')}</small>
+</div>
+</div>{!chat.is_group&&<ContactPreferencesField chat={chat} onSaved={updated=>{setChat(updated);setChats(xs=>xs.map(x=>x.id===updated.id?updated:x))}}/>}{chat.is_group&&<section className="inspector-section">
+<div className="inspector-title">
+<b>Участники</b>
+<span>{chat.members.length}</span>
+</div>
+<div className="member-avatars">{chat.members.slice(0,5).map(m=>
+<Avatar key={m.id} user={m} className="mini-avatar"/>)}{chat.can_manage_members&&<button onClick={()=>setShowGroupEdit(true)}>＋</button>}</div>
+</section>}<section className="inspector-section">
+<div className="inspector-title">
+<b>Ресурсы</b>{chat.can_edit_links&&<button onClick={()=>setQuickLinkSlot(0)}>＋</button>}</div>
+<div className="resource-list">{(chat.quick_links||[]).filter(Boolean).map((l,i)=>
+<button key={i} className="resource-open-button" onClick={()=>setEmbeddedApp({title:l.title||l.name||'Ресурс',url:l.url})}>
+<span className="resource-icon">{(l.title||l.name||'С')[0].toUpperCase()}</span>
+<span>{l.title||l.name||'Ссылка'}</span>
+<b>›</b>
+</button>)}{!(chat.quick_links||[]).filter(Boolean).length&&<small>Пока нет ресурсов</small>}</div>
+</section>
+<section className="inspector-section">
+<div className="inspector-title">
+<b>Медиа</b>
+</div>
+<button className="inspector-row">
+<span>Фото</span>
+<b>{msgs.filter(m=>(m.mime_type||'').startsWith('image/')).length} ›</b>
+</button>
+<button className="inspector-row">
+<span>Документы</span>
+<b>{msgs.filter(m=>m.file_url&&!(m.mime_type||'').startsWith('image/')).length} ›</b>
+</button>
+<button className="inspector-row">
+<span>Ссылки</span>
+<b>{msgs.filter(m=>/(https?:\/\/|\/share\/)/.test(m.text||'')).length} ›</b>
+</button>
+</section>
+<section className="inspector-section">
+<div className="inspector-title">
+<b>Настройки чата</b>
+</div>
+<button className="inspector-row">
+<span>Уведомления</span>
+<span className="fake-toggle on"/>
+</button>
+</section>
+</aside>}{searchActive&&<div className="global-search-overlay" onPointerDown={closeGlobalSearch}>
+<div className="global-search-shell">
+<div className="search-box active-global" onPointerDown={e=>e.stopPropagation()}>
+<span>⌕</span>
+<input ref={searchInput} autoFocus value={searchQuery} onChange={e=>setSearchQuery(e.target.value)} placeholder="Поиск"/>
+<button onClick={closeGlobalSearch}>×</button>
+</div>
+<div onPointerDown={e=>e.stopPropagation()}>
+<SearchResults query={searchQuery} kind={searchKind} setKind={setSearchKind} results={searchResults} busy={searchBusy} historyItems={searchHistory} onHistory={q=>{setSearchQuery(q);searchInput.current?.focus()}} onOpenMessage={m=>{closeGlobalSearch();openSearchMessage(m)}} onOpenChat={c=>{closeGlobalSearch();open(c)}} onOpenUser={u=>{closeGlobalSearch();openSearchUser(u)}}/>
+</div>
+</div>
+</div>}{showAttach&&<>
+<button className="attach-backdrop" aria-label="Закрыть меню вложений" onPointerDown={e=>{e.preventDefault();e.stopPropagation();setShowAttach(false)}} onClick={e=>{e.preventDefault();e.stopPropagation();setShowAttach(false)}}/>
+<div className="attach-menu attach-menu-global" onPointerDown={e=>e.stopPropagation()} onClick={e=>e.stopPropagation()}>
+<button onClick={()=>{imageFile.current?.click();setShowAttach(false)}}>Фото или видео</button>
+<button onClick={()=>{file.current?.click();setShowAttach(false)}}>Документ</button>
+<button onClick={()=>{setShowAttach(false);shareFile.current?.click()}}>Отправить ссылку</button>
+</div>
+</>}{showGroupEdit&&chat?.is_group&&<GroupEditModal chat={chat} close={()=>setShowGroupEdit(false)} saved={c=>{setChat(c);setChats(xs=>xs.map(x=>x.id===c.id?c:x));setShowGroupEdit(false)}}/>}{showAllQuickLinks&&chat&&<QuickLinksPanel chat={chat} close={()=>setShowAllQuickLinks(false)} onEdit={i=>{setShowAllQuickLinks(false);setQuickLinkSlot(i)}}/>}{quickLinkSlot!==null&&chat&&<QuickLinkModal chat={chat} slot={quickLinkSlot} close={()=>setQuickLinkSlot(null)} saved={c=>{setChat(c);setChats(xs=>xs.map(x=>x.id===c.id?c:x));setQuickLinkSlot(null)}}/>}{homeLinkSlot!==null&&<HomeLinkModal user={user} slot={homeLinkSlot} close={()=>setHomeLinkSlot(null)} saved={u=>{setUser(u);setHomeLinkSlot(null)}}/>}{showProfile&&<ProfileModal user={user} close={()=>setShowProfile(false)} saved={u=>{setUser(u);setShowProfile(false);loadChats()}}/>}{showNew&&<NewChat close={()=>setShowNew(false)} created={c=>{setShowNew(false);loadChats();open(c)}}/>}{manualLinkOpen&&<div className="modal manual-link-modal" onPointerDown={closeManualLinkDialog}>
+<div className="modal-card glass-card" onPointerDown={e=>e.stopPropagation()}>
+<div className="modal-head">
+<h3>Вставить ссылку</h3>
+<button type="button" aria-label="Закрыть" onClick={closeManualLinkDialog}>×</button>
+</div>
+<p className="manual-link-copy">iPhone не разрешил автоматически прочитать буфер. Вставьте скопированную ссылку сюда:</p>
+<input autoFocus value={manualLinkValue} onChange={e=>{setManualLinkValue(e.target.value);setManualLinkError('')}} onPaste={e=>{const v=e.clipboardData?.getData('text/plain')||'';setManualLinkValue(v);setManualLinkError('')}} placeholder="https://files.igorson.xyz/…" autoCapitalize="none" autoCorrect="off" inputMode="url"/>{manualLinkError&&<div className="error">{manualLinkError}</div>}<div className="manual-link-actions">
+<button type="button" className="secondary" onClick={closeManualLinkDialog}>Отмена</button>
+<button type="button" className="primary" onClick={submitManualLink}>Вставить</button>
+</div>
+</div>
+</div>}{embeddedApp&&<EmbeddedAppWindow app={embeddedApp} close={()=>setEmbeddedApp(null)}/>}{!chat&&<MobileMainDock section={activeSection} setSection={setActiveSection} onSettings={()=>setShowProfile(true)} callActive={callActive}/>}<OrientationGuard/>
+<CallLayer user={user} ws={wsRef} chat={chat} invite={invite} setInvite={setInvite} onCallActive={setCallActive} clearRequestedCall={()=>{closeCallNotifications();setRequestedCallId(null);const u=new URL(location.href);u.searchParams.delete('call');history.replaceState(null,'',u.pathname+u.search)}}/>
+</div>}
 
 
 function MobileChatTaskbar({tab,setTab,callActive}){
@@ -855,7 +1118,36 @@ function GroupEditModal({chat,close,saved}){
   </div>{pickerOpen&&<UserPickerModal excluded={members.map(m=>m.id)} close={()=>setPickerOpen(false)} select={addSelected}/>}</div>
 }
 
-function UserPickerModal({excluded,close,select}){const[users,setUsers]=useState([]),[q,setQ]=useState(''),[busy,setBusy]=useState(true),[selected,setSelected]=useState([]),[loadError,setLoadError]=useState('');const loadUsers=()=>{setBusy(true);setLoadError('');api('/api/users').then(r=>setUsers(Array.isArray(r)?r:(r?.users||[]))).catch(e=>setLoadError(e.message||'Не удалось загрузить пользователей')).finally(()=>setBusy(false))};useEffect(()=>{loadUsers()},[]);const shown=users.filter(u=>!excluded.includes(u.id)&&(u.username+' '+(u.display_name||'')).toLowerCase().includes(q.toLowerCase()));function toggle(u){setSelected(xs=>xs.includes(u.id)?xs.filter(id=>id!==u.id):[...xs,u.id])}const chosen=users.filter(u=>selected.includes(u.id));return <div className="modal user-picker-modal" onPointerDown={close}><div className="modal-card glass-card user-picker-card" onPointerDown={e=>e.stopPropagation()}><div className="modal-head user-picker-head"><h3>Добавить участника</h3><button className="icon-close" onClick={close} aria-label="Закрыть">×</button></div><label className="user-search-field"><span>⌕</span><input autoFocus value={q} onChange={e=>setQ(e.target.value)} placeholder="Поиск по имени или логину"/></label><div className="user-picker-list">{busy?<div className="muted">Загрузка…</div>:shown.map(u=>{const active=selected.includes(u.id);return <button className={active?'selected':''} key={u.id} onClick={()=>toggle(u)}><Avatar user={u}/><span><b>{u.display_name||u.username}</b><small>@{u.username}</small></span><i className="user-select-mark">{active?'✓':'＋'}</i></button>})}{loadError&&<div className="picker-load-error"><span>{loadError}</span><button onClick={loadUsers}>Повторить</button></div>}{!busy&&!loadError&&!shown.length&&<div className="muted empty-users">Пользователи не найдены</div>}</div><div className="user-picker-footer"><span>Выбрано: {selected.length}</span><div><button className="secondary picker-cancel" onClick={close}>Отмена</button><button className="primary picker-add" disabled={!selected.length} onClick={()=>select(chosen)}>Добавить</button></div></div></div></div>}
+function UserPickerModal({excluded,close,select}){const[users,setUsers]=useState([]),[q,setQ]=useState(''),[busy,setBusy]=useState(true),[selected,setSelected]=useState([]),[loadError,setLoadError]=useState('');const loadUsers=()=>{setBusy(true);setLoadError('');api('/api/users').then(r=>setUsers(Array.isArray(r)?r:(r?.users||[]))).catch(e=>setLoadError(e.message||'Не удалось загрузить пользователей')).finally(()=>setBusy(false))};useEffect(()=>{loadUsers()},[]);const shown=users.filter(u=>!excluded.includes(u.id)&&(u.username+' '+(u.display_name||'')).toLowerCase().includes(q.toLowerCase()));function toggle(u){setSelected(xs=>xs.includes(u.id)?xs.filter(id=>id!==u.id):[...xs,u.id])}const chosen=users.filter(u=>selected.includes(u.id));return <div className="modal user-picker-modal" onPointerDown={close}>
+<div className="modal-card glass-card user-picker-card" onPointerDown={e=>e.stopPropagation()}>
+<div className="modal-head user-picker-head">
+<h3>Добавить участника</h3>
+<button className="icon-close" onClick={close} aria-label="Закрыть">×</button>
+</div>
+<label className="user-search-field">
+<span>⌕</span>
+<input autoFocus value={q} onChange={e=>setQ(e.target.value)} placeholder="Поиск по имени или логину"/>
+</label>
+<div className="user-picker-list">{busy?<div className="muted">Загрузка…</div>:shown.map(u=>{const active=selected.includes(u.id);return <button className={active?'selected':''} key={u.id} onClick={()=>toggle(u)}>
+<Avatar user={u}/>
+<span>
+<b>{u.display_name||u.username}</b>
+<small>@{u.username}</small>
+</span>
+<i className="user-select-mark">{active?'✓':'＋'}</i>
+</button>})}{loadError&&<div className="picker-load-error">
+<span>{loadError}</span>
+<button onClick={loadUsers}>Повторить</button>
+</div>}{!busy&&!loadError&&!shown.length&&<div className="muted empty-users">Пользователи не найдены</div>}</div>
+<div className="user-picker-footer">
+<span>Выбрано: {selected.length}</span>
+<div>
+<button className="secondary picker-cancel" onClick={close}>Отмена</button>
+<button className="primary picker-add" disabled={!selected.length} onClick={()=>select(chosen)}>Добавить</button>
+</div>
+</div>
+</div>
+</div>}
 
 function MemberRow({member,chat,onRole,onRemove}){const[role,setRole]=useState(member.role||'member'),[expiry,setExpiry]=useState(()=>member.expires_at?String(member.expires_at).slice(0,16):'');useEffect(()=>{setRole(member.role||'member');setExpiry(member.expires_at?String(member.expires_at).slice(0,16):'')},[member.role,member.expires_at]);const editable=chat.can_manage_members&&member.role!=='owner'&&member.id!==Number(localStorage.userId||-1)&&!(chat.my_role==='admin'&&member.role==='admin');return <div className="member-row"><Avatar user={member}/><div className="member-copy"><b>{member.display_name||member.username}</b><small>@{member.username} · {member.role_label||role}</small></div>{editable?<div className="member-role-controls"><select value={role} onChange={e=>{const r=e.target.value;setRole(r);onRole(member,r,expiry)}}>{chat.my_role==='owner'&&<option value="admin">Администратор</option>}<option value="member">Участник</option><option value="guest">Гость</option></select>{role==='guest'&&<input type="datetime-local" value={expiry} onChange={e=>{setExpiry(e.target.value);onRole(member,'guest',e.target.value)}}/>}<button className="member-remove-button" onClick={()=>onRemove(member)} aria-label={`Удалить ${member.display_name||member.username}`} title="Удалить участника"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13M10 11v5m4-5v5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/></svg></button></div>:<span className="role-badge">{member.role_label||role}</span>}</div>}
 

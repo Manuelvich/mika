@@ -9,10 +9,14 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@babel/plugin-transform-react-jsx": "^8.0.1",
+    "@babel/preset-react": "^8.0.1",
     "@vitejs/plugin-react": "4.3.4",
+    "@vitejs/plugin-react-swc": "^4.3.1",
+    "esbuild": "^0.21.5",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "vite": "6.0.11"
+    "vite": "^5.4.21"
   },
   "devDependencies": {
     "typescript": "5.7.3"
