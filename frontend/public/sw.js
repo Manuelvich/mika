@@ -1,4 +1,4 @@
-const SW_VERSION='2026-07-14-mobile-disk-usage-composer-r21';
+const SW_VERSION='2026-07-14-touch-shell-r3-call-layout';
 self.addEventListener('install',()=>self.skipWaiting());
 self.addEventListener('activate',event=>event.waitUntil((async()=>{for(const key of await caches.keys())await caches.delete(key);await self.clients.claim()})()));
 

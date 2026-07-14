@@ -15,7 +15,7 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel
 from pywebpush import WebPushException, webpush
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Table, Text, create_engine, inspect, text, func
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Table, Text, UniqueConstraint, create_engine, inspect, text, func
 from sqlalchemy.orm import Session, declarative_base, relationship, sessionmaker
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./messenger.db")
@@ -81,6 +81,17 @@ class Chat(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     members = relationship("User", secondary=chat_members, back_populates="chats")
     messages = relationship("Message", back_populates="chat", cascade="all,delete-orphan")
+
+class ContactCategory(Base):
+    __tablename__ = "contact_categories"
+    __table_args__ = (UniqueConstraint("owner_id", "contact_id", name="uq_contact_category_owner_contact"),)
+    id = Column(Integer, primary_key=True)
+    owner_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
+    contact_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
+    category = Column(String(20), nullable=True)
+    alias = Column(String(80), nullable=True)
+    note = Column(Text, nullable=True)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 class Message(Base):
     __tablename__ = "messages"
@@ -175,6 +186,11 @@ try:
             conn.execute(text("ALTER TABLE chat_members ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'member'"))
         if "expires_at" not in member_columns:
             conn.execute(text("ALTER TABLE chat_members ADD COLUMN expires_at TIMESTAMP"))
+        contact_columns = {c["name"] for c in inspect(engine).get_columns("contact_categories")}
+        if "alias" not in contact_columns:
+            conn.execute(text("ALTER TABLE contact_categories ADD COLUMN alias VARCHAR(80)"))
+        if "note" not in contact_columns:
+            conn.execute(text("ALTER TABLE contact_categories ADD COLUMN note TEXT"))
         conn.execute(text("UPDATE users SET last_seen = COALESCE(last_seen, created_at, CURRENT_TIMESTAMP)"))
 except Exception:
     pass
@@ -224,6 +240,14 @@ class ProfileIn(BaseModel):
     avatar_url: Optional[str] = None
     home_links: Optional[list[Optional[dict[str, Any]]]] = None
 
+class ContactCategoryIn(BaseModel):
+    category: Optional[str] = None
+
+class ContactPreferencesIn(BaseModel):
+    alias: Optional[str] = None
+    category: Optional[str] = None
+    note: Optional[str] = None
+
 class StorageFolderIn(BaseModel):
     name: str
     parent_id: Optional[int] = None
@@ -263,18 +287,14 @@ def decode_token(token: str) -> int:
 
 def touch_user_activity(session: Session, user: User, min_interval_seconds: int = 20):
     now = datetime.now(timezone.utc)
-    previous = user.last_seen
-    if previous is None:
-        user.last_seen = now
-        session.add(user)
-        session.commit()
-        return
-    if previous.tzinfo is None:
+    previous = getattr(user, "last_seen", None)
+    if previous is not None and previous.tzinfo is None:
         previous = previous.replace(tzinfo=timezone.utc)
-    if (now - previous).total_seconds() >= min_interval_seconds:
+    if previous is None or (now - previous).total_seconds() >= min_interval_seconds:
         user.last_seen = now
         session.add(user)
         session.commit()
+
 
 def current_user(authorization: str = Header(default=""), s: Session = Depends(db)):
     if not authorization.startswith("Bearer "):
@@ -299,10 +319,7 @@ def iso_utc(value):
 
 
 def user_out(u):
-    conns = None
-    if globals().get("hub"):
-        conns = globals()["hub"].connections.get(u.id)
-    online = bool(conns)
+    online = bool(globals().get("hub") and globals()["hub"].connections.get(u.id))
     return {
         "id": u.id, "username": u.username,
         "display_name": getattr(u, "display_name", None) or u.username,
@@ -351,7 +368,20 @@ def role_for(chat, uid: int) -> str | None:
     return row.get("role") or "member"
 
 def chat_out(c, u):
-    title = c.name if c.is_group else next(((getattr(m, "display_name", None) or m.username) for m in c.members if m.id != u.id), (getattr(u, "display_name", None) or u.username))
+    other_member = next((m for m in c.members if m.id != u.id), None) if not c.is_group else None
+    contact_category = None
+    contact_alias = None
+    contact_note = None
+    original_contact_name = None
+    if other_member is not None:
+        original_contact_name = getattr(other_member, "display_name", None) or other_member.username
+        with SessionLocal() as category_session:
+            row = category_session.query(ContactCategory).filter_by(owner_id=u.id, contact_id=other_member.id).first()
+            if row:
+                contact_category = row.category or None
+                contact_alias = (row.alias or "").strip() or None
+                contact_note = row.note or None
+    title = c.name if c.is_group else (contact_alias or original_contact_name or (getattr(u, "display_name", None) or u.username))
     last = max(c.messages, key=lambda m: m.id, default=None)
     # Непрочитанные считаются по квитанциям конкретного пользователя.
     # Это работает одинаково для личных и групповых чатов.
@@ -383,6 +413,11 @@ def chat_out(c, u):
         "can_write": current_role != "guest",
         "can_call": current_role != "guest",
         "quick_links": json.loads(c.quick_links) if getattr(c, "quick_links", None) else [],
+        "contact_category": contact_category,
+        "contact_alias": contact_alias,
+        "contact_note": contact_note,
+        "contact_original_name": original_contact_name,
+        "contact_id": other_member.id if other_member is not None else None,
         "members": members,
         "last_message": msg_out(last) if last else None,
         "unread_count": unread_count,
@@ -442,6 +477,50 @@ def update_me(x: ProfileIn, u=Depends(current_user), s: Session = Depends(db)):
 @app.get("/api/users")
 def users(q: str = "", u=Depends(current_user), s: Session = Depends(db)):
     return [user_out(x) for x in s.query(User).filter(User.username.ilike(f"%{q}%"), User.id != u.id).limit(50)]
+
+
+@app.patch("/api/contacts/{contact_id}/preferences")
+def update_contact_preferences(contact_id: int, x: ContactPreferencesIn, u=Depends(current_user), s: Session = Depends(db)):
+    if contact_id == u.id:
+        raise HTTPException(400, "Нельзя редактировать собственный контакт")
+    contact = s.get(User, contact_id)
+    if not contact:
+        raise HTTPException(404, "Контакт не найден")
+    allowed = {"family", "friends", "work"}
+    category = (x.category or "").strip().lower() or None
+    if category is not None and category not in allowed:
+        raise HTTPException(400, "Неизвестная категория")
+    alias = (x.alias or "").strip()[:80] or None
+    note = (x.note or "").strip()[:2000] or None
+    row = s.query(ContactCategory).filter_by(owner_id=u.id, contact_id=contact_id).first()
+    if not any((category, alias, note)):
+        if row:
+            s.delete(row)
+    elif row:
+        row.category = category or ""
+        row.alias = alias
+        row.note = note
+        row.updated_at = datetime.now(timezone.utc)
+    else:
+        s.add(ContactCategory(owner_id=u.id, contact_id=contact_id, category=category or "", alias=alias, note=note))
+    s.commit()
+    return {
+        "contact_id": contact_id,
+        "category": category,
+        "alias": alias,
+        "note": note,
+        "display_name": alias or (contact.display_name or contact.username),
+        "original_name": contact.display_name or contact.username,
+    }
+
+@app.patch("/api/contacts/{contact_id}/category")
+def update_contact_category(contact_id: int, x: ContactCategoryIn, u=Depends(current_user), s: Session = Depends(db)):
+    row = s.query(ContactCategory).filter_by(owner_id=u.id, contact_id=contact_id).first()
+    return update_contact_preferences(
+        contact_id,
+        ContactPreferencesIn(alias=row.alias if row else None, note=row.note if row else None, category=x.category),
+        u, s
+    )
 
 
 @app.get("/api/search")
@@ -701,7 +780,7 @@ def storage_list(parent_id: Optional[int] = None, u=Depends(current_user), s: Se
         "parent_id": parent_id,
         "used_bytes": int(used_bytes),
         "quota_bytes": quota_bytes,
-        "usage_percent": round((int(used_bytes) / quota_bytes) * 100, 1) if quota_bytes > 0 else 0,
+        "usage_percent": round((int(used_bytes) / quota_bytes) * 100, 2) if quota_bytes > 0 else 0,
     }
 
 @app.post("/api/storage/folders")
@@ -1213,7 +1292,6 @@ async def websocket(ws: WebSocket, token_q: str):
             user = session.get(User, uid)
             if user:
                 user.last_seen = datetime.now(timezone.utc)
-                session.add(user)
                 session.commit()
             if data.get("type") == "ping":
                 continue
@@ -1224,12 +1302,5 @@ async def websocket(ws: WebSocket, token_q: str):
     finally:
         hub.disconnect(uid, ws)
         if not hub.connections.get(uid):
-            try:
-                user = session.get(User, uid)
-                if user:
-                    user.last_seen = datetime.now(timezone.utc)
-                    session.commit()
-            except Exception:
-                pass
             await broadcast_presence(uid, False, session)
         session.close()
