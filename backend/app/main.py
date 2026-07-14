@@ -68,6 +68,7 @@ class User(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     last_seen = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=True)
     home_links = Column(Text, nullable=True)
+    phone = Column(String(30), nullable=True)
     chats = relationship("Chat", secondary=chat_members, back_populates="members")
 
 class Chat(Base):
@@ -153,6 +154,16 @@ def initialize_database(max_attempts: int = 30, delay_seconds: int = 2) -> None:
     last_error = None
     for attempt in range(1, max_attempts + 1):
         try:
+            try:
+                from sqlalchemy import inspect as sa_inspect
+                inspector = sa_inspect(engine)
+                if "users" in inspector.get_table_names():
+                    cols = [c["name"] for c in inspector.get_columns("users")]
+                    if "phone" not in cols:
+                        with engine.begin() as conn:
+                            conn.execute(text("ALTER TABLE users ADD COLUMN phone VARCHAR(30)"))
+            except Exception:
+                pass
             Base.metadata.create_all(engine)
             return
         except Exception as exc:
@@ -323,6 +334,7 @@ def user_out(u):
     return {
         "id": u.id, "username": u.username,
         "display_name": getattr(u, "display_name", None) or u.username,
+        "phone": getattr(u, "phone", None) or None,
         "avatar_url": getattr(u, "avatar_url", None),
         "online": online,
         "last_seen": iso_utc(getattr(u, "last_seen", None) or getattr(u, "created_at", None) or datetime.now(timezone.utc)),
@@ -384,7 +396,7 @@ def chat_out(c, u):
                 contact_category = row.category or None
                 contact_alias = (row.alias or "").strip() or None
                 contact_note = row.note or None
-                contact_phone = other_member.phone or None if getattr(other_member, "phone", None) else None
+                contact_phone = getattr(other_member, "phone", None) or None
                 contact_login = other_member.username or None
                 contact_last_seen = other_member.last_seen.isoformat() if getattr(other_member, "last_seen", None) else None
     title = c.name if c.is_group else (contact_alias or original_contact_name or (getattr(u, "display_name", None) or u.username))
