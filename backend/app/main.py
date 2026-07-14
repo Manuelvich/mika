@@ -372,6 +372,9 @@ def chat_out(c, u):
     contact_category = None
     contact_alias = None
     contact_note = None
+    contact_phone = None
+    contact_login = None
+    contact_last_seen = None
     original_contact_name = None
     if other_member is not None:
         original_contact_name = getattr(other_member, "display_name", None) or other_member.username
@@ -381,6 +384,9 @@ def chat_out(c, u):
                 contact_category = row.category or None
                 contact_alias = (row.alias or "").strip() or None
                 contact_note = row.note or None
+                contact_phone = other_member.phone or None if getattr(other_member, "phone", None) else None
+                contact_login = other_member.username or None
+                contact_last_seen = other_member.last_seen.isoformat() if getattr(other_member, "last_seen", None) else None
     title = c.name if c.is_group else (contact_alias or original_contact_name or (getattr(u, "display_name", None) or u.username))
     last = max(c.messages, key=lambda m: m.id, default=None)
     # Непрочитанные считаются по квитанциям конкретного пользователя.
@@ -416,6 +422,9 @@ def chat_out(c, u):
         "contact_category": contact_category,
         "contact_alias": contact_alias,
         "contact_note": contact_note,
+        "contact_phone": contact_phone,
+        "contact_login": contact_login,
+        "contact_last_seen": contact_last_seen,
         "contact_original_name": original_contact_name,
         "contact_id": other_member.id if other_member is not None else None,
         "members": members,

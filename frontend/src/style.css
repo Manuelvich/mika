@@ -3268,3 +3268,156 @@ audio {
 .mobile-section .contact-pref-edit {
   padding: 0;
 }
+
+/* ===== Contact Preferences View/Edit Mode ===== */
+.contact-preferences-section {
+  padding: 0;
+}
+.contact-pref-view {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 0;
+}
+.contact-pref-view .pref-row {
+  display: flex;
+  padding: 6px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.contact-pref-view .pref-row:last-child {
+  border-bottom: none;
+}
+.contact-pref-view .pref-label {
+  width: 80px;
+  flex-shrink: 0;
+  font-weight: 600;
+  font-size: 0.75rem;
+  color: var(--text-secondary, #999);
+  padding-top: 1px;
+}
+.contact-pref-view .pref-value {
+  font-size: 0.85rem;
+  word-break: break-word;
+}
+.contact-pref-edit {
+  padding: 8px 0;
+}
+.contact-pref-edit .pref-row {
+  display: flex;
+  padding: 6px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.contact-pref-edit .pref-label {
+  width: 80px;
+  flex-shrink: 0;
+  font-weight: 600;
+  font-size: 0.75rem;
+  color: var(--text-secondary, #999);
+  padding-top: 7px;
+}
+.contact-pref-edit .pref-value {
+  font-size: 0.85rem;
+  word-break: break-word;
+  padding-top: 7px;
+}
+.contact-pref-edit .pref-field {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.contact-pref-edit .pref-field span {
+  font-size: 0.75rem;
+  color: var(--text-secondary, #999);
+  margin-bottom: 4px;
+}
+.contact-pref-edit .pref-field input,
+.contact-pref-edit .pref-field select,
+.contact-pref-edit .pref-field textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 8px;
+  background: rgba(0,0,0,0.2);
+  color: #fff;
+  font-size: 0.9rem;
+  box-sizing: border-box;
+}
+.contact-pref-edit .pref-field textarea {
+  resize: vertical;
+  min-height: 50px;
+}
+.contact-pref-edit .pref-field select {
+  cursor: pointer;
+}
+.contact-pref-edit .pref-field select option {
+  background: #1a1f2e;
+  color: #fff;
+}
+.contact-pref-actions {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+  justify-content: flex-end;
+}
+.contact-pref-actions button {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: none;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.contact-pref-actions button:disabled {
+  opacity: 0.5;
+}
+.contact-pref-actions button.primary {
+  background: var(--accent, #2d7e4f);
+  color: #fff;
+  font-weight: 600;
+}
+.contact-pref-actions button.secondary {
+  background: rgba(255,255,255,0.1);
+  color: #ccc;
+}
+.contact-pref-edit-btn {
+  margin-left: auto;
+  padding: 4px 10px;
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--accent, #2d7e4f);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.contact-pref-edit-btn:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: var(--accent, #2d7e4f);
+}
+.contact-saved-tag {
+  padding: 3px 10px;
+  font-size: 0.7rem;
+  color: var(--accent, #2d7e4f);
+  text-align: right;
+  animation: fadeOut 1.5s ease forwards;
+}
+@keyframes fadeOut {
+  0% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* Desktop inspector compact mode */
+.inspector-section.contact-preferences-section.compact .contact-pref-view,
+.inspector-section.contact-preferences-section.compact .contact-pref-edit {
+  padding: 0;
+}
+.inspector-section.contact-preferences-section.compact .pref-row,
+.inspector-section.contact-preferences-section.compact .pref-field {
+  padding: 5px 0;
+}
+.inspector-section.contact-preferences-section.compact .contact-pref-edit-btn {
+  font-size: 0.7rem;
+  padding: 2px 8px;
+}
