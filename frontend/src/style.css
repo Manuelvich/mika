@@ -2894,48 +2894,51 @@ html[data-platform="android"] .attach-backdrop {
 .standalone-list-create{width:min(520px,calc(100vw - 32px));max-height:calc(100dvh - 34px);overflow:auto}
 .collaborators-head{display:flex;flex-direction:column;gap:3px;margin:16px 0 8px}.collaborators-head b{font-size:13px}.collaborators-head small{font-size:11px;color:#818c85}.collaborator-search{width:100%;height:40px;border:1px solid #dfe5e1;border-radius:11px;background:#fff;padding:0 12px;font:inherit}.collaborator-list{margin-top:8px;max-height:230px;overflow:auto;border:1px solid #e4e9e6;border-radius:12px;background:#fff}.collaborator-row{display:grid!important;grid-template-columns:22px 34px minmax(0,1fr);align-items:center;gap:9px;padding:8px 10px!important;margin:0!important;border-bottom:1px solid #edf0ee;cursor:pointer}.collaborator-row:last-child{border-bottom:0}.collaborator-row>input{width:17px!important;height:17px!important}.collaborator-avatar{width:32px;height:32px;border-radius:50%;object-fit:cover;background:#e5ece7;display:grid;place-items:center}.collaborator-row>span{display:flex;flex-direction:column;gap:1px}.collaborator-row b{font-size:13px;font-weight:520}.collaborator-row small{font-size:10px;color:#8c958f}.collaborator-state{padding:18px;text-align:center;color:#8a948e;font-size:12px}
 
-/* Mika 4.3.1 — compact unified workspace tiles */
+/* Mika 4.3 — approved applications and collaborative lists workspace */
 @media (min-width:901px) and (hover:hover) and (pointer:fine){
-  .apps-workspace-v2 .apps-content-scroll{padding:20px 24px 30px}
-  .apps-workspace-v2 .apps-section>h2{margin-bottom:11px;font-size:13px;font-weight:560}
-  .apps-workspace-v2 .workspace-object-grid{
-    grid-template-columns:repeat(auto-fill,minmax(175px,1fr))!important;
-    gap:9px!important;
-  }
-  .apps-workspace-v2 .workspace-object-tile{
-    min-height:72px!important;
-    height:72px!important;
-    grid-template-columns:40px minmax(0,1fr) 18px!important;
-    gap:10px!important;
-    padding:10px 12px!important;
-    border-radius:14px!important;
-    box-shadow:0 3px 12px rgba(54,75,61,.035)!important;
-  }
-  .apps-workspace-v2 .workspace-object-tile>span{
-    width:38px!important;height:38px!important;border-radius:11px!important;
-    font-size:15px!important;font-weight:650!important;
-  }
-  .apps-workspace-v2 .workspace-object-tile b{
-    display:block;font-size:13px!important;font-weight:560!important;
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  }
-  .apps-workspace-v2 .workspace-object-tile small{
-    display:block;font-size:10px!important;font-weight:400!important;
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  }
-  .apps-workspace-v2 .workspace-object-tile>i{font-size:16px!important}
-  .apps-workspace-v2 .workspace-object-tile .app-edit-inline{
-    right:5px;top:4px;width:25px;height:25px;border-radius:8px;font-size:16px;
-    opacity:0;transition:opacity .12s ease;
-  }
-  .apps-workspace-v2 .workspace-object-tile:hover .app-edit-inline,
-  .apps-workspace-v2 .workspace-object-tile:focus-within .app-edit-inline{opacity:1}
-  .apps-workspace-v2 .checklist-tile>span{background:#e8eee9!important;color:#52705d!important}
+  .apps-workspace-v3{display:grid!important;grid-template-columns:minmax(0,1fr) 260px!important;overflow:hidden!important;background:#fff!important}
+  .apps-workspace-v3 .apps-main-pane{min-width:0;display:flex;flex-direction:column;overflow:hidden;background:#fff!important}
+  .apps-workspace-v3 .apps-main-header{min-height:78px!important;padding:20px 28px!important;border-bottom:0!important;background:#fff!important}
+  .apps-workspace-v3 .apps-main-header h1{font-size:28px!important;font-weight:650!important;letter-spacing:-.03em;margin:0!important;color:#17201b!important}
+  .apps-workspace-v3 .apps-content-scroll{min-height:0;overflow:auto;padding:6px 28px 34px!important;background:#fff!important}
+  .apps-workspace-v3 .apps-section{max-width:1000px}
+  .apps-section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 14px}
+  .apps-section-head h2{margin:0!important;font-size:14px!important;font-weight:650!important;color:#202a24!important}
+  .apps-inline-add{display:none}
+  .workspace-tile-grid{display:grid;grid-template-columns:repeat(3,minmax(190px,1fr));gap:12px}
+  .workspace-tile{width:100%;height:92px;border:1px solid #e0e5e2;border-radius:13px;background:#fff;display:grid;grid-template-columns:44px minmax(0,1fr) 24px;align-items:center;gap:12px;padding:14px 16px;text-align:left;color:#17201b;cursor:pointer;box-shadow:0 1px 3px rgba(30,49,38,.025);transition:border-color .16s ease,box-shadow .16s ease,transform .16s ease}
+  .workspace-tile:hover{border-color:#cbd8cf;box-shadow:0 8px 20px rgba(40,67,50,.065);transform:translateY(-1px)}
+  .workspace-tile-icon{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;font-size:18px;font-weight:650;flex:none}
+  .app-icon{background:#365a95;color:#fff}.app-workspace-tile:nth-child(2n) .app-icon{background:#3f7acb}.app-workspace-tile:nth-child(3n) .app-icon{background:#099c4c}.app-workspace-tile:nth-child(4n) .app-icon{background:#111}.app-workspace-tile:nth-child(5n) .app-icon{background:#8b22ba}.app-workspace-tile:nth-child(6n) .app-icon{background:#e52413}
+  .workspace-tile-copy{min-width:0;display:flex;flex-direction:column;gap:4px}.workspace-tile-copy b{font-size:14px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.workspace-tile-copy small{font-size:11.5px;font-weight:400;color:#626d66;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .workspace-tile-menu{font-style:normal;font-size:24px;line-height:1;color:#69736d;text-align:center}
+  .list-icon{background:#eee8ff;color:#7f3fe2}.list-icon.tone-1{background:#e5f3e8;color:#3c995b}.list-icon.tone-2{background:#fff0df;color:#ec8a18}.list-icon.tone-3{background:#e2f5f4;color:#20a4a2}.list-icon.tone-4{background:#ffe7ed;color:#e83b6b}.list-icon.tone-5{background:#e8f0fc;color:#357bd2}
+  .apps-workspace-v3 .apps-divider{height:1px;border:0;background:#dfe5e1;margin:24px 0 22px!important}
+  .apps-workspace-v3 .apps-action-column{border-left:1px solid #e4e8e5;background:#fff!important;padding:26px 20px;display:flex;flex-direction:column;gap:14px;overflow:auto}
+  .apps-workspace-v3 .apps-action-button{width:100%;height:54px;border:0;border-radius:8px;background:#4f956a;color:#fff;display:flex;align-items:center;justify-content:flex-start;gap:10px;padding:0 16px;box-shadow:none;cursor:pointer;transition:background .16s ease,transform .16s ease}
+  .apps-workspace-v3 .apps-action-button:hover{background:#43835c;transform:translateY(-1px)}
+  .apps-workspace-v3 .apps-action-button>span{width:auto;height:auto;border-radius:0;background:transparent;color:#fff;font-size:26px;font-weight:300;display:block}
+  .apps-workspace-v3 .apps-action-button>b{font-size:13px;font-weight:650}
+  .apps-workspace-v3 .compact-list-stage{padding:18px 28px 30px!important}
 }
 
-@media (max-width:900px){
-  .workspace-object-grid{display:grid!important;grid-template-columns:1fr!important;gap:0!important;padding:0 16px 90px!important}
-  .workspace-object-tile{width:100%!important;min-height:62px!important;height:62px!important;border:0!important;border-bottom:1px solid rgba(61,78,67,.08)!important;border-radius:0!important;box-shadow:none!important;background:transparent!important;grid-template-columns:40px minmax(0,1fr) 20px!important;padding:9px 0!important}
-  .workspace-object-tile>span{width:36px!important;height:36px!important;border-radius:11px!important;font-size:15px!important}
-  .workspace-object-tile b{font-size:14px!important;font-weight:540!important}.workspace-object-tile small{font-size:11px!important}
+@media (min-width:901px) and (max-width:1220px) and (hover:hover) and (pointer:fine){
+  .workspace-tile-grid{grid-template-columns:repeat(2,minmax(190px,1fr))}
+}
+
+@media (max-width:900px), (hover:none) and (pointer:coarse){
+  .apps-workspace-v3{display:block!important;background:#fbfcfb!important}
+  .apps-workspace-v3 .apps-action-column{display:none!important}
+  .apps-workspace-v3 .apps-main-header{min-height:auto!important;padding:calc(14px + env(safe-area-inset-top)) 18px 10px!important;background:#fbfcfb!important}
+  .apps-workspace-v3 .apps-main-header h1{font-size:22px!important;font-weight:600!important}
+  .apps-workspace-v3 .apps-content-scroll{padding:8px 16px calc(var(--mobile-dock-height,72px) + 20px)!important;overflow:auto!important}
+  .apps-section-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:10px 0 10px}
+  .apps-section-head h2{margin:0!important;font-size:14px!important;font-weight:600!important;color:#2d3932!important}
+  .apps-inline-add{display:inline-flex;border:0;background:transparent;color:#4c775e;font-size:12px;font-weight:600;padding:6px 0}
+  .workspace-tile-grid{display:grid!important;grid-template-columns:1fr!important;gap:0!important}
+  .workspace-tile{width:100%;min-height:64px;border:0;border-bottom:1px solid #e5eae7;border-radius:0;background:transparent;display:grid;grid-template-columns:40px minmax(0,1fr) 24px;align-items:center;gap:11px;padding:9px 2px;text-align:left;color:#17201b;box-shadow:none}
+  .workspace-tile-icon{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-size:15px;font-weight:600}
+  .workspace-tile-copy{min-width:0;display:flex;flex-direction:column;gap:2px}.workspace-tile-copy b{font-size:14px;font-weight:560}.workspace-tile-copy small{font-size:11px;color:#7f8983}
+  .workspace-tile-menu{font-size:21px;color:#86918a}
+  .apps-workspace-v3 .apps-divider{height:1px;border:0;background:#dfe5e1;margin:18px 0 14px!important}
 }

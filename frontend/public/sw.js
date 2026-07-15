@@ -1,5 +1,5 @@
-const CACHE_NAME='mika-4.3.1-compact-workspace-r1';
-const SW_VERSION='2026-07-15-mika-4.3.1-compact-workspace-r1';
+const CACHE_NAME='mika-4.3-workspace-navfix-r1';
+const SW_VERSION='2026-07-15-mika-4.3-navigation-fix-r1';
 self.addEventListener('install',()=>self.skipWaiting());
 self.addEventListener('activate',event=>event.waitUntil((async()=>{for(const key of await caches.keys())await caches.delete(key);await self.clients.claim()})()));
 
