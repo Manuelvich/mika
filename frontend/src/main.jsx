@@ -4,7 +4,7 @@ import{createPortal}from'react-dom';
 import'./style.css';
 
 const API=import.meta.env.VITE_API_URL||'';
-const APP_VERSION='2026.07.15-workspace-v43-navfix1';
+const APP_VERSION='2026.07.15-workspace-v43-list-actions-outline1';
 const CALL_INVITE_TTL_MS=120000;
 const MESSAGE_SOUND_URL='/sounds/incoming-message.mp3';
 let incomingMessageAudio=null;
@@ -402,6 +402,14 @@ function AppsWorkspace({user,onOpenApp,onEditApp,onBack}){
  const emptyIndex=source.findIndex(app=>!app||!app.url),addSlot=emptyIndex>=0?emptyIndex:source.length;
  const selected=lists.find(x=>x.id===selectedId)||null;
  const openNewList=()=>setShowCreate(true);
+ const deleteList=async row=>{
+   if(!confirm(`Удалить список «${row.title}»?`))return;
+   try{
+     await api(`/api/checklists/${row.id}`,{method:'DELETE'});
+     setLists(xs=>xs.filter(x=>x.id!==row.id));
+     if(selectedId===row.id)setSelectedId(null);
+   }catch(e){alert(e.message)}
+ };
  return <section className="desktop-workspace-panel apps-workspace apps-workspace-v3">
    <div className="apps-main-pane">
      <header className="workspace-header apps-main-header">
@@ -429,7 +437,7 @@ function AppsWorkspace({user,onOpenApp,onEditApp,onBack}){
            {lists.map((row,index)=>{const done=row.items.filter(x=>x.checked).length,total=row.items.length;return <button className="workspace-tile list-workspace-tile" key={row.id} onClick={()=>setSelectedId(row.id)}>
              <span className={`workspace-tile-icon list-icon tone-${index%6}`}><Icon name="apps" size={22}/></span>
              <span className="workspace-tile-copy"><b>{row.title}</b><small>{done} из {total}</small></span>
-             <em className="workspace-tile-menu">⋮</em>
+             <em className="workspace-tile-menu" title="Действия" onClick={e=>{e.stopPropagation();deleteList(row)}}>⋮</em>
            </button>})}
          </div>}
        </section>

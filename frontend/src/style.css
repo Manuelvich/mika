@@ -2935,8 +2935,9 @@ html[data-platform="android"] .attach-backdrop {
   .apps-section-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:10px 0 10px}
   .apps-section-head h2{margin:0!important;font-size:14px!important;font-weight:600!important;color:#2d3932!important}
   .apps-inline-add{display:inline-flex;border:0;background:transparent;color:#4c775e;font-size:12px;font-weight:600;padding:6px 0}
-  .workspace-tile-grid{display:grid!important;grid-template-columns:1fr!important;gap:0!important}
-  .workspace-tile{width:100%;min-height:64px;border:0;border-bottom:1px solid #e5eae7;border-radius:0;background:transparent;display:grid;grid-template-columns:40px minmax(0,1fr) 24px;align-items:center;gap:11px;padding:9px 2px;text-align:left;color:#17201b;box-shadow:none}
+  .workspace-tile-grid{display:grid!important;grid-template-columns:1fr!important;gap:10px!important}
+  .workspace-tile{width:100%;min-height:68px;border:1px solid #dfe5e1;border-radius:13px;background:#fff;display:grid;grid-template-columns:40px minmax(0,1fr) 24px;align-items:center;gap:11px;padding:11px 13px;text-align:left;color:#17201b;box-shadow:0 1px 3px rgba(30,49,38,.025)}
+  .workspace-tile:active{border-color:#c8d6cc;background:#f9fbf9}
   .workspace-tile-icon{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-size:15px;font-weight:600}
   .workspace-tile-copy{min-width:0;display:flex;flex-direction:column;gap:2px}.workspace-tile-copy b{font-size:14px;font-weight:560}.workspace-tile-copy small{font-size:11px;color:#7f8983}
   .workspace-tile-menu{font-size:21px;color:#86918a}
