@@ -2483,941 +2483,459 @@ html[data-device="phone"][data-orientation="landscape"] .app>main {
 .contact-preferences-section{display:grid;gap:12px}.contact-preferences-section .inspector-title{margin-bottom:0}.contact-original-name{display:flex;flex-direction:column;gap:3px;padding:10px 12px;border-radius:12px;background:rgba(118,139,130,.08)}.contact-original-name span,.contact-preference-field>span{font-size:12px;color:#7f8b86}.contact-original-name b{font-size:14px;font-weight:500}.contact-preference-field{display:grid;gap:6px}.contact-preference-field input,.contact-preference-field select,.contact-preference-field textarea{width:100%;box-sizing:border-box;border:1px solid rgba(89,110,101,.18);background:rgba(255,255,255,.84);border-radius:12px;padding:10px 12px;font:400 14px/1.35 inherit;color:inherit;outline:none}.contact-preference-field textarea{resize:vertical;min-height:72px}.contact-preference-field input:focus,.contact-preference-field select:focus,.contact-preference-field textarea:focus{border-color:rgba(74,112,95,.5);box-shadow:0 0 0 3px rgba(74,112,95,.09)}.contact-preferences-save{justify-self:start;border:0;border-radius:11px;padding:9px 15px;background:#5f7f70;color:#fff;font-size:13px;font-weight:500}.contact-preferences-save:disabled{opacity:.6}.contact-preferences-section>small{font-size:11px;line-height:1.35;color:#8b9691}.mobile-chat-panel .contact-preferences-section{margin:0 16px 16px;padding:16px;border-radius:18px;background:rgba(255,255,255,.76);box-shadow:0 8px 24px rgba(42,61,53,.06)}.mobile-chat-panel .contact-preferences-section .inspector-title b{font-size:15px;font-weight:600}.mobile-chat-panel .contact-preference-field input,.mobile-chat-panel .contact-preference-field select,.mobile-chat-panel .contact-preference-field textarea{font-size:16px} 
 .message-item{display:flex;flex-direction:column;align-items:flex-start;width:100%}.message-item.mine{align-items:flex-end}.message-item .bubble{align-self:flex-start;max-width:min(75%,680px)}.message-item.mine .bubble{align-self:flex-end}.message-item .message-meta{align-self:flex-start}.message-item.mine .message-meta{align-self:flex-end}
 
+/* Release 3.2 final */
+.contact-view-grid{display:grid;gap:10px}.contact-view-grid>div{display:flex;flex-direction:column;gap:3px;padding:10px 12px;border-radius:12px;background:rgba(118,139,130,.08)}.contact-view-grid span{font-size:12px;color:#7f8b86}.contact-view-grid b{font-size:14px;font-weight:500}.contact-view-grid.personal .full p{margin:2px 0 0;font-size:14px;line-height:1.45;white-space:pre-wrap;color:#3d4842}.contact-preferences-edit{justify-self:start;border:0;border-radius:11px;padding:9px 15px;background:#e7efea;color:#456654;font-size:13px;font-weight:600}.contact-preferences-actions{display:flex;justify-content:flex-end;gap:8px}.contact-preferences-actions .secondary{border:0;border-radius:11px;padding:9px 15px;background:#edf1ee;color:#56635c;font-size:13px;font-weight:500}.app-edit-inline{position:absolute;right:10px;top:8px;width:30px;height:30px;border-radius:9px;background:#edf3ef;display:grid;place-items:center;font-style:normal;font-size:18px;color:#65736b}.app-tile{position:relative}.resource-item{display:grid;grid-template-columns:minmax(0,1fr) 32px;align-items:center;gap:4px}.resource-edit-button{width:30px;height:30px;border:0;border-radius:9px;background:#edf3ef;color:#607067;font-size:18px}.resource-open-button{width:100%}.mobile-disk-usage-line b{font-variant-numeric:tabular-nums}
+@media(max-width:900px),(hover:none) and (pointer:coarse){.contact-view-grid{gap:8px}.contact-view-grid>div{padding:9px 11px}.contact-preferences-actions{position:sticky;bottom:0;padding-top:8px;background:linear-gradient(transparent,#fff 30%)}}
 
-/* Mobile/tablet portrait reliability release — 2026-07-14 */
-.rotate-device-overlay{display:none}
-
-@media (max-width:700px), (hover:none) and (pointer:coarse){
-  body>.viewport-dock{
-    display:grid!important;
-    position:fixed!important;
-    left:0!important;
-    right:0!important;
-    bottom:0!important;
-    top:auto!important;
-    inset:auto 0 0 0!important;
-    width:100vw!important;
-    max-width:100vw!important;
-    margin:0!important;
-    transform:none!important;
-    z-index:2147483000!important;
-  }
-  .desktop-rail{display:none!important}
-  .app{padding-bottom:var(--mobile-dock-height)!important}
-  .app.mobile-chat-open{padding-bottom:0!important}
-  .mobile-chat-panel{
-    min-height:0!important;
-    overflow-y:auto!important;
-    -webkit-overflow-scrolling:touch!important;
-    overscroll-behavior:contain!important;
-    padding-bottom:calc(var(--mobile-dock-height) + 20px)!important;
-  }
-  .modal{
-    position:fixed!important;
-    inset:0!important;
-    width:100vw!important;
-    height:var(--vv-height,100dvh)!important;
-    max-height:var(--vv-height,100dvh)!important;
-    padding:calc(12px + env(safe-area-inset-top)) 12px calc(12px + env(safe-area-inset-bottom))!important;
-    display:flex!important;
-    align-items:center!important;
-    justify-content:center!important;
-    overflow:hidden!important;
-  }
-  .modal-card{
-    width:min(100%,620px)!important;
-    max-width:100%!important;
-    max-height:calc(var(--vv-height,100dvh) - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom))!important;
-    min-height:0!important;
-    overflow-x:hidden!important;
-    overflow-y:auto!important;
-    -webkit-overflow-scrolling:touch!important;
-    overscroll-behavior:contain!important;
-    border-radius:22px!important;
-  }
-  .group-settings-card,.user-picker-card,.profile-card,.quick-link-modal{
-    max-height:calc(var(--vv-height,100dvh) - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom))!important;
-    overflow-y:auto!important;
-  }
+/* Android surface correction r1: never dim the whole Touch UI without a real modal. */
+html[data-platform="android"] body,
+html[data-platform="android"] #root,
+html[data-platform="android"] .app,
+html[data-platform="android"] .chat-sidebar,
+html[data-platform="android"] .app>main,
+html[data-platform="android"] .desktop-workspace-panel,
+html[data-platform="android"] .mobile-disk-screen,
+html[data-platform="android"] .apps-workspace{
+  opacity:1!important;
+  filter:none!important;
+  mix-blend-mode:normal!important;
+  background-color:#fbfcfa!important;
 }
-
-@media (orientation:landscape) and (hover:none) and (pointer:coarse){
-  body>*:not(.rotate-device-overlay){visibility:hidden!important;pointer-events:none!important}
-  .rotate-device-overlay{
-    visibility:visible!important;
-    pointer-events:auto!important;
-    position:fixed!important;
-    inset:0!important;
-    z-index:2147483647!important;
-    display:grid!important;
-    place-items:center!important;
-    padding:32px!important;
-    background:#f5f7f4!important;
-    color:#26312b!important;
-    text-align:center!important;
-    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif!important;
-  }
-  .rotate-device-overlay>div{max-width:360px}
-  .rotate-device-icon{display:grid;width:64px;height:64px;margin:0 auto 18px;place-items:center;border-radius:22px;background:#dfece2;color:#557b63;font-size:34px}
-  .rotate-device-overlay h2{margin:0 0 8px;font-size:24px;font-weight:620}
-  .rotate-device-overlay p{margin:0;color:#7f8983;font-size:15px;line-height:1.45}
-}
-
-/* Touch UI v3 — one consistent phone/tablet layout for every touch device. */
-.app.touch-ui{
-  position:fixed!important;
-  inset:0!important;
-  display:block!important;
-  width:100%!important;
-  height:var(--app-height,100dvh)!important;
-  overflow:hidden!important;
-  background:#f7faf7!important;
-}
-.app.touch-ui .desktop-rail,
-.app.touch-ui .desktop-inspector,
-.app.touch-ui .home-quick-links-mobile-hide,
-.app.touch-ui .mobile-top-cloud,
-.app.touch-ui .group-quick-links{display:none!important}
-.app.touch-ui>aside,
-.app.touch-ui>main{
-  position:absolute!important;
-  inset:0!important;
-  width:100%!important;
-  height:100%!important;
-  max-width:none!important;
-  min-width:0!important;
-  border:0!important;
-}
-.app.touch-ui:not(.mobile-chat-open)>aside{display:flex!important}
-.app.touch-ui:not(.mobile-chat-open)>main{display:none!important}
-.app.touch-ui.mobile-chat-open>aside{display:none!important}
-.app.touch-ui.mobile-chat-open>main{display:flex!important;flex-direction:column!important}
-.app.touch-ui .mobile-main-dock,
-.app.touch-ui .mobile-chat-taskbar{display:grid!important}
-.app.touch-ui .mobile-chat-panel{display:block!important}
-.app.touch-ui .mobile-tab-hidden{display:none!important}
-.app.touch-ui .chat-sidebar{background:#f4f8f4!important}
-.app.touch-ui .chat-header{flex:0 0 auto!important;width:100%!important}
-.app.touch-ui .messages{width:100%!important;max-width:none!important}
-.app.touch-ui .message-item{width:100%!important;display:flex!important;flex-direction:column!important;align-items:flex-start!important}
-.app.touch-ui .message-item.mine{align-items:flex-end!important}
-.app.touch-ui .bubble{max-width:min(76%,620px)!important}
-.app.touch-ui .modal{
-  position:fixed!important;
-  inset:0!important;
-  z-index:10000!important;
-  display:grid!important;
-  place-items:center!important;
-  padding:max(12px,env(safe-area-inset-top)) 12px max(12px,env(safe-area-inset-bottom))!important;
-  overflow:hidden!important;
-  background:rgba(34,44,38,.28)!important;
-}
-.app.touch-ui .modal-card,
-.app.touch-ui .glass-card{
-  width:min(620px,100%)!important;
-  max-width:calc(100vw - 24px)!important;
-  max-height:calc(var(--vv-height,100dvh) - 24px)!important;
-  overflow-y:auto!important;
-  overscroll-behavior:contain!important;
-  -webkit-overflow-scrolling:touch!important;
-  border-radius:24px!important;
-}
-.app.touch-ui .viewport-composer{
-  left:0!important;
-  right:0!important;
-  width:100%!important;
-}
-html[data-keyboard-open="true"] .app.touch-ui .mobile-main-dock,
-html[data-keyboard-open="true"] .app.touch-ui .mobile-chat-taskbar{display:none!important}
-html[data-keyboard-open="true"] .app.touch-ui .viewport-composer{
-  display:flex!important;
-  bottom:var(--keyboard-inset,0px)!important;
-  z-index:9000!important;
-}
-@media (orientation:landscape) and (pointer:coarse){
-  .app.touch-ui{visibility:hidden!important}
-  .rotate-device-overlay{display:grid!important}
-}
-
-
-/* Touch UI v3 r2 — force the mobile layout on Android/iOS phones and tablets,
-   even when the browser requests a desktop site. */
-html[data-device="phone"] body>.viewport-dock,
-html[data-device="tablet"] body>.viewport-dock{
-  display:grid!important;
-}
-html[data-device="phone"] .desktop-rail,
-html[data-device="tablet"] .desktop-rail{
-  display:none!important;
-}
-html[data-device="phone"] .app,
-html[data-device="tablet"] .app{
-  position:fixed!important;
-  inset:0!important;
-  width:100%!important;
-  height:var(--app-height,100dvh)!important;
-  display:block!important;
-  overflow:hidden!important;
-}
-html[data-device="phone"] .app>aside,
-html[data-device="phone"] .app>main,
-html[data-device="tablet"] .app>aside,
-html[data-device="tablet"] .app>main{
-  position:absolute!important;
-  inset:0!important;
-  width:100%!important;
-  height:100%!important;
-  max-width:none!important;
-  min-width:0!important;
-  border:0!important;
-}
-html[data-device="phone"] .app:not(.mobile-chat-open)>aside,
-html[data-device="tablet"] .app:not(.mobile-chat-open)>aside{display:flex!important}
-html[data-device="phone"] .app:not(.mobile-chat-open)>main,
-html[data-device="tablet"] .app:not(.mobile-chat-open)>main{display:none!important}
-html[data-device="phone"] .app.mobile-chat-open>aside,
-html[data-device="tablet"] .app.mobile-chat-open>aside{display:none!important}
-html[data-device="phone"] .app.mobile-chat-open>main,
-html[data-device="tablet"] .app.mobile-chat-open>main{display:flex!important;flex-direction:column!important}
-html[data-device="phone"] .home-quick-links-mobile-hide,
-html[data-device="tablet"] .home-quick-links-mobile-hide,
-html[data-device="phone"] .mobile-top-cloud,
-html[data-device="tablet"] .mobile-top-cloud,
-html[data-device="phone"] .group-quick-links,
-html[data-device="tablet"] .group-quick-links{display:none!important}
-html[data-device="tablet"] .chat-sidebar,
-html[data-device="tablet"] main{
-  max-width:760px!important;
-  margin:0 auto!important;
-  left:50%!important;
-  right:auto!important;
-  transform:translateX(-50%)!important;
-  box-shadow:0 0 0 1px rgba(76,101,86,.06)!important;
-}
-html[data-device="tablet"] body{background:#edf3ee!important}
-@media (orientation:landscape){
-  html[data-device="phone"] .app,
-  html[data-device="tablet"] .app{visibility:hidden!important;pointer-events:none!important}
-  html[data-device="phone"] .rotate-device-overlay,
-  html[data-device="tablet"] .rotate-device-overlay{display:grid!important}
-}
-
-
-/* Touch UI v3 r3: reliable portrait guard for Android browsers. */
-.rotate-device-overlay-active{
-  display:grid!important;
-  visibility:visible!important;
-  pointer-events:auto!important;
-  position:fixed!important;
-  inset:0!important;
-  z-index:2147483647!important;
-  place-items:center!important;
-  padding:32px!important;
+html[data-platform="android"] .app{
   background:#f5f7f4!important;
-  color:#26312b!important;
-  text-align:center!important;
 }
-html:has(.rotate-device-overlay-active) body>.app,
-html:has(.rotate-device-overlay-active) body>.viewport-dock,
-html:has(.rotate-device-overlay-active) body>.viewport-composer{
-  visibility:hidden!important;
-  pointer-events:none!important;
-}
-html:has(.rotate-device-overlay-active) body>.rotate-device-overlay-active{
-  visibility:visible!important;
-  pointer-events:auto!important;
-}
-
-/* Split UI r1: Desktop and Touch are separate stable layouts. */
-html[data-ui-mode="touch"],html[data-ui-mode="touch"] body{width:100%;height:100%;overflow:hidden}
-.app.ui-touch{
-  position:fixed!important;
-  inset:0!important;
-  width:100%!important;
-  height:var(--app-height,100dvh)!important;
-  display:block!important;
-  overflow:hidden!important;
-  background:#f6f9f6!important;
-}
-.app.ui-touch .desktop-rail,.app.ui-touch .desktop-inspector,.app.ui-touch .home-quick-links-mobile-hide,.app.ui-touch .mobile-top-cloud,.app.ui-touch .group-quick-links{display:none!important}
-.app.ui-touch>aside,.app.ui-touch>main{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:none!important;min-width:0!important;border:0!important}
-.app.ui-touch:not(.mobile-chat-open)>aside{display:flex!important;flex-direction:column!important}
-.app.ui-touch:not(.mobile-chat-open)>main{display:none!important}
-.app.ui-touch.mobile-chat-open>aside{display:none!important}
-.app.ui-touch.mobile-chat-open>main{display:flex!important;flex-direction:column!important}
-.app.ui-touch .topbar{padding-top:max(10px,env(safe-area-inset-top))!important}
-.app.ui-touch .chat-sidebar{background:#f4f8f4!important;padding-bottom:calc(84px + env(safe-area-inset-bottom))!important}
-.app.ui-touch .chat-header{width:100%!important;flex:0 0 auto!important;padding-top:max(8px,env(safe-area-inset-top))!important}
-.app.ui-touch .messages{width:100%!important;max-width:none!important;flex:1 1 auto!important;overflow-y:auto!important;padding-bottom:calc(var(--mobile-composer-height,62px) + 16px)!important}
-.app.ui-touch .message-item{width:100%!important;display:flex!important;flex-direction:column!important;align-items:flex-start!important}
-.app.ui-touch .message-item.mine{align-items:flex-end!important}
-.app.ui-touch .bubble{max-width:min(78%,620px)!important}
-.app.ui-touch .mobile-main-dock,.app.ui-touch .mobile-chat-taskbar{display:grid!important}
-.app.ui-touch .mobile-chat-panel{display:block!important}
-.app.ui-touch .mobile-tab-hidden{display:none!important}
-.app.ui-touch .modal{position:fixed!important;inset:0!important;z-index:10000!important;display:grid!important;place-items:center!important;padding:max(12px,env(safe-area-inset-top)) 12px max(12px,env(safe-area-inset-bottom))!important;overflow:hidden!important;background:rgba(34,44,38,.28)!important}
-.app.ui-touch .modal-card,.app.ui-touch .glass-card{width:min(620px,100%)!important;max-width:calc(100vw - 24px)!important;max-height:calc(var(--vv-height,100dvh) - 24px)!important;overflow-y:auto!important;overscroll-behavior:contain!important;-webkit-overflow-scrolling:touch!important;border-radius:24px!important}
-.app.ui-touch .viewport-composer{left:0!important;right:0!important;width:100%!important}
-html[data-keyboard-open="true"] .app.ui-touch .mobile-main-dock,html[data-keyboard-open="true"] .app.ui-touch .mobile-chat-taskbar{display:none!important}
-html[data-keyboard-open="true"] .app.ui-touch .viewport-composer{display:flex!important;bottom:var(--keyboard-inset,0px)!important;z-index:9000!important}
-.app.ui-desktop .mobile-main-dock,.app.ui-desktop .mobile-chat-taskbar,.app.ui-desktop .mobile-chat-panel{display:none!important}
-.app.ui-desktop .back{display:none!important}
-@media (orientation:landscape){html[data-ui-mode="touch"] .app.ui-touch{visibility:hidden!important}html[data-ui-mode="touch"] .rotate-device-overlay{display:grid!important}}
-@media (orientation:portrait){html[data-ui-mode="touch"] .rotate-device-overlay{display:none!important}}
-
-/* Touch Shell r2 — authoritative layout, independent of browser desktop-mode UA. */
-html[data-ui-mode="touch"],
-html[data-ui-mode="touch"] body,
-html[data-ui-mode="touch"] #root,
-html[data-ui-mode="touch"] .touch-app-host {
-  width:100%;
-  height:100%;
-  min-width:0;
-  margin:0;
-  overflow:hidden;
-}
-html[data-ui-mode="touch"] body { background:#f7faf7; }
-html[data-ui-mode="touch"] .desktop-app-host { display:none!important; }
-html[data-ui-mode="touch"] .touch-app-host { position:fixed; inset:0; }
-html[data-ui-mode="touch"] .app.ui-touch {
-  position:absolute!important;
-  inset:0!important;
-  width:100%!important;
-  max-width:none!important;
-  min-width:0!important;
-  height:var(--vv-height,100dvh)!important;
-  min-height:0!important;
-  margin:0!important;
-  display:block!important;
-  overflow:hidden!important;
-  border-radius:0!important;
-  transform:none!important;
-  grid-template-columns:none!important;
-  background:#f7faf7!important;
-}
-html[data-ui-mode="touch"] .app.ui-touch>.desktop-rail,
-html[data-ui-mode="touch"] .app.ui-touch>.desktop-inspector { display:none!important; }
-html[data-ui-mode="touch"] .app.ui-touch>.chat-sidebar,
-html[data-ui-mode="touch"] .app.ui-touch>main {
-  position:absolute!important;
-  inset:0!important;
-  width:100%!important;
-  max-width:none!important;
-  min-width:0!important;
-  height:100%!important;
-  margin:0!important;
-  transform:none!important;
-  border:0!important;
-  border-radius:0!important;
-}
-html[data-ui-mode="touch"] .app.ui-touch:not(.mobile-chat-open)>.chat-sidebar {
-  display:flex!important;
-  flex-direction:column!important;
-  z-index:10!important;
-  background:#f7faf7!important;
-}
-html[data-ui-mode="touch"] .app.ui-touch:not(.mobile-chat-open)>main { display:none!important; }
-html[data-ui-mode="touch"] .app.ui-touch.mobile-chat-open>.chat-sidebar { display:none!important; }
-html[data-ui-mode="touch"] .app.ui-touch.mobile-chat-open>main {
-  display:flex!important;
-  flex-direction:column!important;
-  z-index:20!important;
-  background:#fbfdfb!important;
-  padding:0!important;
-}
-html[data-ui-mode="touch"] .app.ui-touch .topbar {
-  flex:0 0 auto!important;
-  width:100%!important;
-  min-height:calc(72px + env(safe-area-inset-top))!important;
-  height:calc(72px + env(safe-area-inset-top))!important;
-  padding:env(safe-area-inset-top) 18px 0!important;
-  background:rgba(250,252,250,.97)!important;
-  border-bottom:1px solid #e8ede9!important;
-}
-html[data-ui-mode="touch"] .app.ui-touch .home-quick-links-mobile-hide,
-html[data-ui-mode="touch"] .app.ui-touch .mobile-top-cloud { display:none!important; }
-html[data-ui-mode="touch"] .app.ui-touch .search-box { margin:14px 16px 10px!important; }
-html[data-ui-mode="touch"] .app.ui-touch .chat-list {
-  flex:1!important;
-  min-height:0!important;
-  overflow-y:auto!important;
-  -webkit-overflow-scrolling:touch!important;
-  padding:0 10px calc(92px + env(safe-area-inset-bottom))!important;
-}
-html[data-ui-mode="touch"] .app.ui-touch .chat-header {
-  position:relative!important;
-  inset:auto!important;
-  flex:0 0 auto!important;
-  width:100%!important;
-  min-width:0!important;
-  height:calc(64px + env(safe-area-inset-top))!important;
-  min-height:calc(64px + env(safe-area-inset-top))!important;
-  padding:env(safe-area-inset-top) 12px 0!important;
-  background:rgba(252,253,252,.97)!important;
-  border-bottom:1px solid #e7ece8!important;
-  display:grid!important;
-  grid-template-columns:38px 44px minmax(0,1fr) auto!important;
-  gap:8px!important;
-  align-items:center!important;
-}
-html[data-ui-mode="touch"] .app.ui-touch .chat-header .back { display:grid!important; }
-html[data-ui-mode="touch"] .app.ui-touch .group-quick-links { display:none!important; }
-html[data-ui-mode="touch"] .app.ui-touch .call-header-actions { gap:4px!important; padding-right:8px!important; }
-html[data-ui-mode="touch"] .app.ui-touch .call-header-actions button { width:38px!important; height:38px!important; }
-html[data-ui-mode="touch"] .app.ui-touch .messages {
-  flex:1 1 auto!important;
-  width:100%!important;
-  min-width:0!important;
-  min-height:0!important;
-  overflow-y:auto!important;
-  -webkit-overflow-scrolling:touch!important;
-  padding:14px 14px calc(78px + var(--mobile-composer-height,58px))!important;
-  background:#fbfdfb!important;
-}
-html[data-ui-mode="touch"] .app.ui-touch .message-item { width:100%!important; max-width:100%!important; }
-html[data-ui-mode="touch"] .app.ui-touch .message-item:not(.mine) { align-items:flex-start!important; }
-html[data-ui-mode="touch"] .app.ui-touch .message-item.mine { align-items:flex-end!important; }
-html[data-ui-mode="touch"] .app.ui-touch .bubble { max-width:min(78%,680px)!important; }
-html[data-ui-mode="touch"] .mobile-main-dock,
-html[data-ui-mode="touch"] .mobile-chat-taskbar {
-  display:grid!important;
-  left:0!important;
-  right:0!important;
-  bottom:0!important;
-  width:100%!important;
-  max-width:none!important;
-  margin:0!important;
-  transform:none!important;
-}
-html[data-ui-mode="touch"] .mobile-main-dock {
-  grid-template-columns:repeat(5,minmax(0,1fr))!important;
-  min-height:calc(72px + env(safe-area-inset-bottom))!important;
-  padding:5px 4px max(4px,env(safe-area-inset-bottom))!important;
-}
-html[data-ui-mode="touch"] .mobile-main-dock button .icon { width:29px!important; height:29px!important; }
-html[data-ui-mode="touch"] .mobile-main-dock button span { font-size:11px!important; }
-html[data-ui-mode="touch"] .mobile-chat-taskbar {
-  grid-template-columns:repeat(5,minmax(0,1fr))!important;
-  min-height:calc(68px + env(safe-area-inset-bottom))!important;
-  padding:4px 2px max(3px,env(safe-area-inset-bottom))!important;
-}
-html[data-ui-mode="touch"] .viewport-composer {
-  position:fixed!important;
-  left:0!important;
-  right:0!important;
-  width:100%!important;
-  max-width:none!important;
-  margin:0!important;
-  bottom:calc(68px + env(safe-area-inset-bottom))!important;
-  z-index:5100!important;
-}
-html[data-ui-mode="touch"][data-keyboard-open="true"] .mobile-main-dock,
-html[data-ui-mode="touch"][data-keyboard-open="true"] .mobile-chat-taskbar { display:none!important; }
-html[data-ui-mode="touch"][data-keyboard-open="true"] .viewport-composer {
-  bottom:var(--viewport-bottom,0px)!important;
-  transform:translateY(var(--vv-top,0px))!important;
-}
-html[data-ui-mode="touch"] .desktop-workspace-panel {
-  position:absolute!important;
-  inset:0 0 calc(72px + env(safe-area-inset-bottom)) 0!important;
-  width:100%!important;
-  max-width:none!important;
-  min-width:0!important;
-  height:auto!important;
-  border-radius:0!important;
-  overflow:auto!important;
-  z-index:60!important;
-}
-html[data-ui-mode="touch"] .mobile-disk-screen { display:flex!important; position:absolute!important; inset:0!important; width:100%!important; height:100%!important; }
-html[data-ui-mode="touch"] .modal {
-  position:fixed!important;
-  inset:0!important;
-  display:grid!important;
-  place-items:center!important;
-  padding:16px!important;
-  overflow:hidden!important;
-}
-html[data-ui-mode="touch"] .modal>.modal-card {
-  width:min(620px,100%)!important;
-  max-width:100%!important;
-  max-height:calc(var(--vv-height,100dvh) - 32px)!important;
-  overflow-y:auto!important;
-  -webkit-overflow-scrolling:touch!important;
-  overscroll-behavior:contain!important;
-  margin:0!important;
-}
-html[data-ui-mode="touch"] .rotate-device-overlay-active { display:grid!important; visibility:visible!important; }
-@media (orientation:landscape) {
-  html[data-ui-mode="touch"] .touch-app-host { visibility:hidden!important; }
-  html[data-ui-mode="touch"] body>.rotate-device-overlay-active { visibility:visible!important; display:grid!important; }
-}
-
-
-/* Touch Shell r3 — Android title surface and call controls must never sit under the dock. */
-html[data-ui-mode="touch"][data-platform="android"] .auth-shell{
-  background:#f7faf7!important;
-  background-image:none!important;
+html[data-platform="android"] .messages{
+  background:linear-gradient(180deg,#f7f8f6,#f3f5f2)!important;
+  opacity:1!important;
   filter:none!important;
 }
-html[data-ui-mode="touch"][data-platform="android"] .auth-card{
-  background:#fafbf9!important;
-  backdrop-filter:none!important;
+html[data-platform="android"] .topbar,
+html[data-platform="android"] .chat-header,
+html[data-platform="android"] body>.viewport-dock,
+html[data-platform="android"] body>.viewport-composer{
+  background:#fbfcfa!important;
   -webkit-backdrop-filter:none!important;
-  box-shadow:0 16px 44px rgba(47,58,51,.09)!important;
+  backdrop-filter:none!important;
+  opacity:1!important;
+  filter:none!important;
+}
+html[data-platform="android"] body:not(:has(.modal)):not(:has(.storage-modal)):not(:has(.group-settings-modal)):not(:has(.user-picker-modal))::before,
+html[data-platform="android"] body:not(:has(.modal)):not(:has(.storage-modal)):not(:has(.group-settings-modal)):not(:has(.user-picker-modal))::after{
+  content:none!important;
+  display:none!important;
+}
+html[data-platform="android"] body:not(:has(.modal)):not(:has(.storage-modal)):not(:has(.group-settings-modal)):not(:has(.user-picker-modal)) .app{
+  pointer-events:auto!important;
 }
 
-/* The call layer owns the whole viewport. Dock and composer are hidden for
-   incoming, outgoing, connecting and active audio/video calls. */
-html[data-call-active="true"] body>.viewport-dock,
-html[data-call-active="true"] body>.viewport-composer,
-html[data-call-active="true"] .mobile-main-dock,
-html[data-call-active="true"] .mobile-chat-taskbar,
-html[data-call-active="true"] .composer-wrap{
-  display:none!important;
-  visibility:hidden!important;
-  pointer-events:none!important;
+/* Android opaque light surface fix r2.
+   Chromium-based Android browsers render translucent iOS glass surfaces as grey.
+   Keep iOS unchanged and use fully opaque light surfaces on Android. */
+html[data-platform="android"]{
+  color-scheme:light!important;
+  background:#f8faf8!important;
 }
-html[data-call-active="true"] .call-overlay{
+html[data-platform="android"],
+html[data-platform="android"] body,
+html[data-platform="android"] #root{
+  width:100vw!important;
+  max-width:none!important;
+  min-width:0!important;
+  margin:0!important;
+  padding:0!important;
+  background:#f8faf8!important;
+  forced-color-adjust:none!important;
+  -webkit-tap-highlight-color:transparent;
+}
+html[data-platform="android"] .app{
   position:fixed!important;
   inset:0!important;
   width:100vw!important;
-  height:100dvh!important;
-  min-height:100dvh!important;
-  z-index:2147483000!important;
+  max-width:none!important;
+  height:var(--app-height,100dvh)!important;
   margin:0!important;
-  padding:0!important;
-  overflow:hidden!important;
+  border:0!important;
+  border-radius:0!important;
+  background:#f8faf8!important;
+  box-shadow:none!important;
+  opacity:1!important;
+  filter:none!important;
 }
-html[data-call-active="true"] .call-stage{
-  position:absolute!important;
-  inset:0!important;
+html[data-platform="android"] .app>aside,
+html[data-platform="android"] .chat-sidebar,
+html[data-platform="android"] .app>main,
+html[data-platform="android"] .workspace-screen,
+html[data-platform="android"] .mobile-disk-screen,
+html[data-platform="android"] .apps-workspace{
+  background:#f8faf8!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+  opacity:1!important;
+  filter:none!important;
+}
+html[data-platform="android"] .topbar,
+html[data-platform="android"] .chat-header,
+html[data-platform="android"] .search-box,
+html[data-platform="android"] .search,
+html[data-platform="android"] .composer,
+html[data-platform="android"] .composer-wrap,
+html[data-platform="android"] body>.viewport-composer,
+html[data-platform="android"] body>.viewport-dock,
+html[data-platform="android"] .mobile-main-dock,
+html[data-platform="android"] .mobile-chat-taskbar{
+  background:#fff!important;
+  background-color:#fff!important;
+  -webkit-backdrop-filter:none!important;
+  backdrop-filter:none!important;
+  opacity:1!important;
+  filter:none!important;
+}
+html[data-platform="android"] .chat-list{
+  background:#f8faf8!important;
+}
+html[data-platform="android"] .chat-row{
+  background:#f8faf8!important;
+  opacity:1!important;
+  filter:none!important;
+}
+html[data-platform="android"] .chat-row.active,
+html[data-platform="android"] .chat-row:active{
+  background:#edf3ee!important;
+}
+html[data-platform="android"] .chat-category-title,
+html[data-platform="android"] .chat-title,
+html[data-platform="android"] .preview,
+html[data-platform="android"] .profile-copy,
+html[data-platform="android"] .mobile-main-dock button,
+html[data-platform="android"] .mobile-chat-taskbar button{
+  opacity:1!important;
+  filter:none!important;
+}
+html[data-platform="android"] .messages{
+  background-color:#f8faf8!important;
+  background-image:radial-gradient(circle at 1px 1px,rgba(71,100,87,.055) 1px,transparent 0)!important;
+  background-size:24px 24px!important;
+}
+/* An overlay is allowed to dim the page only while it contains a visible dialog. */
+html[data-platform="android"] .modal:empty,
+html[data-platform="android"] .storage-modal:empty,
+html[data-platform="android"] .group-settings-modal:empty,
+html[data-platform="android"] .user-picker-modal:empty,
+html[data-platform="android"] .search-dismiss-layer:not([data-active="true"]){
+  display:none!important;
+  background:transparent!important;
+  -webkit-backdrop-filter:none!important;
+  backdrop-filter:none!important;
+}
+
+/* Android final opaque rendering fix r3.
+   Must stay at the very end of the stylesheet. Android Chromium can report
+   support for backdrop-filter while compositing the whole surface as grey. */
+html[data-platform="android"]{
+  color-scheme:light only!important;
+  background:#f7f9f6!important;
+}
+html[data-platform="android"],
+html[data-platform="android"] body,
+html[data-platform="android"] #root{
   width:100%!important;
   height:100%!important;
-  min-height:0!important;
+  max-width:none!important;
+  margin:0!important;
+  padding:0!important;
+  background:#f7f9f6!important;
+  opacity:1!important;
+  filter:none!important;
 }
-html[data-call-active="true"] .call-controls{
-  left:0!important;
-  right:0!important;
-  bottom:0!important;
-  z-index:20!important;
-  padding:26px 14px max(28px,calc(env(safe-area-inset-bottom) + 18px))!important;
+/* Disable glass compositing globally on Android. Real overlays retain their
+   explicit semi-transparent background, but no blur/filter is allowed. */
+html[data-platform="android"] *{
+  -webkit-backdrop-filter:none!important;
+  backdrop-filter:none!important;
+  filter:none!important;
 }
-html[data-call-active="true"] .incoming .call-card{
-  padding:24px 18px max(34px,calc(env(safe-area-inset-bottom) + 22px))!important;
+html[data-platform="android"] .app,
+html[data-platform="android"] .app>aside,
+html[data-platform="android"] .app>main,
+html[data-platform="android"] .chat-sidebar,
+html[data-platform="android"] .workspace-screen,
+html[data-platform="android"] .desktop-workspace-panel,
+html[data-platform="android"] .mobile-disk-screen,
+html[data-platform="android"] .apps-workspace{
+  width:100%!important;
+  max-width:none!important;
+  margin:0!important;
+  border-radius:0!important;
+  opacity:1!important;
+  background:#f7f9f6!important;
+  box-shadow:none!important;
 }
-html[data-call-active="true"] .call-actions{
-  margin-top:clamp(38px,9vh,72px)!important;
-  padding-bottom:max(10px,env(safe-area-inset-bottom))!important;
+html[data-platform="android"] .topbar,
+html[data-platform="android"] .chat-header,
+html[data-platform="android"] .composer,
+html[data-platform="android"] .composer-wrap,
+html[data-platform="android"] body>.viewport-composer,
+html[data-platform="android"] body>.viewport-dock,
+html[data-platform="android"] .mobile-main-dock,
+html[data-platform="android"] .mobile-chat-taskbar,
+html[data-platform="android"] .search-box,
+html[data-platform="android"] .search{
+  background:#fff!important;
+  background-image:none!important;
+  opacity:1!important;
+}
+html[data-platform="android"] .chat-list,
+html[data-platform="android"] .messages{
+  background-color:#f7f9f6!important;
+  opacity:1!important;
+}
+html[data-platform="android"] .messages{
+  background-image:radial-gradient(circle at 1px 1px,rgba(71,100,87,.05) 1px,transparent 0)!important;
+  background-size:24px 24px!important;
+}
+html[data-platform="android"] .chat-row,
+html[data-platform="android"] .bubble,
+html[data-platform="android"] .storage-card,
+html[data-platform="android"] .contact-view-grid>div,
+html[data-platform="android"] .contact-original-name,
+html[data-platform="android"] .mobile-chat-panel .contact-preferences-section{
+  background-color:#fff!important;
+  background-image:none!important;
+  opacity:1!important;
+}
+/* Keep file action buttons hidden until their intended interaction state. */
+html[data-platform="android"] .files-v2-row-actions{opacity:0!important}
+html[data-platform="android"] .files-v2-row:hover .files-v2-row-actions,
+html[data-platform="android"] .files-v2-row:focus-within .files-v2-row-actions{opacity:1!important}
+/* Only genuine dialog overlays may dim the page. Empty/stale layers disappear. */
+html[data-platform="android"] .modal:empty,
+html[data-platform="android"] .storage-modal:empty,
+html[data-platform="android"] .group-settings-modal:empty,
+html[data-platform="android"] .user-picker-modal:empty,
+html[data-platform="android"] .search-dismiss-layer:not([data-active="true"]){display:none!important}
+
+
+/* Android pure-white surface r4.
+   The first frame is already white in index.html; these rules keep the
+   mounted React application identical instead of switching to grey/green
+   translucent surfaces after boot. */
+html[data-platform="android"],
+html[data-platform="android"] body,
+html[data-platform="android"] #root,
+html[data-platform="android"] .app,
+html[data-platform="android"] .app>aside,
+html[data-platform="android"] .app>main,
+html[data-platform="android"] .chat-sidebar,
+html[data-platform="android"] .topbar,
+html[data-platform="android"] .chat-list,
+html[data-platform="android"] .chat-header,
+html[data-platform="android"] .messages,
+html[data-platform="android"] .composer,
+html[data-platform="android"] .composer-wrap,
+html[data-platform="android"] body>.viewport-composer,
+html[data-platform="android"] body>.viewport-dock,
+html[data-platform="android"] .mobile-main-dock,
+html[data-platform="android"] .mobile-chat-taskbar,
+html[data-platform="android"] .workspace-screen,
+html[data-platform="android"] .desktop-workspace-panel,
+html[data-platform="android"] .mobile-disk-screen,
+html[data-platform="android"] .apps-workspace {
+  background:#fff!important;
+  background-color:#fff!important;
+  background-image:none!important;
+  opacity:1!important;
+  filter:none!important;
+  -webkit-backdrop-filter:none!important;
+  backdrop-filter:none!important;
+}
+html[data-platform="android"] .app,
+html[data-platform="android"] .app>aside,
+html[data-platform="android"] .app>main,
+html[data-platform="android"] .chat-sidebar {
+  width:100%!important;
+  max-width:none!important;
+  margin:0!important;
+  border-radius:0!important;
+  border-left:0!important;
+  border-right:0!important;
+  box-shadow:none!important;
+}
+html[data-platform="android"] .search-box,
+html[data-platform="android"] .chat-row,
+html[data-platform="android"] .bubble,
+html[data-platform="android"] .storage-card,
+html[data-platform="android"] .contact-view-grid>div,
+html[data-platform="android"] .contact-original-name,
+html[data-platform="android"] .mobile-chat-panel .contact-preferences-section {
+  background:#fff!important;
+  background-image:none!important;
+  -webkit-backdrop-filter:none!important;
+  backdrop-filter:none!important;
+}
+html[data-platform="android"] .messages {
+  background:#fff!important;
+  background-image:none!important;
+}
+/* Preserve real modal dimming only while an actual modal exists. */
+html[data-platform="android"] .modal,
+html[data-platform="android"] .global-search-overlay,
+html[data-platform="android"] .attach-backdrop {
+  -webkit-backdrop-filter:none!important;
+  backdrop-filter:none!important;
 }
 
-/* Android browser bars vary. Keep controls clear of gesture/navigation areas. */
-html[data-ui-mode="touch"][data-platform="android"][data-call-active="true"] .call-controls{
-  padding-bottom:max(34px,calc(var(--viewport-bottom,0px) + 22px))!important;
+/* Mika 4.0: collaborative checklists */
+.checklist-card{width:min(560px,100%);background:#fff;border:1px solid rgba(15,23,42,.09);border-radius:16px;padding:14px;box-shadow:0 8px 28px rgba(15,23,42,.06);color:#18211d}
+.checklist-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}.checklist-head div{display:grid;gap:3px}.checklist-head small{font-size:11px;color:#7d8781}.checklist-head b{font-size:15px;font-weight:600}.checklist-head>span{font-size:12px;color:#66716b;white-space:nowrap}
+.checklist-progress{height:3px;border-radius:999px;background:#edf1ee;margin:10px 0 12px;overflow:hidden}.checklist-progress i{display:block;height:100%;background:#6d8779;border-radius:inherit;transition:width .18s ease}
+.checklist-items{display:grid;gap:3px}.checklist-item{display:grid;grid-template-columns:26px minmax(0,1fr) 28px;align-items:center;gap:8px;min-height:36px;border-radius:10px;padding:2px 3px}.checklist-item:hover{background:#f6f8f6}.checklist-toggle{width:22px;height:22px;border:1px solid #b7c1bb;border-radius:7px;background:#fff;color:#fff;padding:0}.checklist-item.done .checklist-toggle{background:#718a7d;border-color:#718a7d}.checklist-item span{font-size:13px;line-height:1.35}.checklist-item.done span{text-decoration:line-through;color:#9aa39e}.checklist-remove{opacity:0;border:0;background:none;color:#9da6a1;font-size:19px}.checklist-item:hover .checklist-remove,.checklist-item:focus-within .checklist-remove{opacity:1}
+.checklist-add{display:grid;grid-template-columns:1fr 36px;gap:8px;margin-top:10px}.checklist-add input{height:36px;border:1px solid #dfe5e1;border-radius:10px;padding:0 11px;font-size:13px}.checklist-add button{height:36px;border-radius:10px;border:0;background:#edf2ef;color:#566b60;font-size:20px}
+.checklist-create-modal{width:min(520px,calc(100vw - 28px));max-height:calc(100dvh - 32px);overflow:auto}.checklist-create-modal label{display:grid;gap:6px;font-size:12px;color:#68736d;margin:12px 0}.checklist-create-modal input,.checklist-create-modal select{width:100%;height:42px;border:1px solid #dfe5e1;border-radius:11px;background:#fff;padding:0 12px;font:inherit;color:#17201b}.checklist-draft-items{display:grid;gap:8px;margin-top:14px}.checklist-draft-items>div{display:grid;grid-template-columns:1fr 36px;gap:7px}.checklist-draft-items>div button{border:0;background:#f3f5f3;border-radius:10px}.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}.workspace-head-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.workspace-head-actions .primary{border:0;border-radius:11px;background:#70877b;color:#fff;padding:10px 14px;font-weight:600}.lists-workspace{height:100%;overflow:auto;padding:0 24px 28px}.workspace-list-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:16px}.workspace-checklist-chat{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#8b958f;margin:0 0 6px 6px}
+.bubble .checklist-card{box-shadow:none;border-color:rgba(15,23,42,.08);margin-top:3px}.bubble:has(.checklist-card){max-width:min(78%,590px);background:transparent!important;padding:0!important;box-shadow:none!important}
+
+/* Mika 4.0: lighter desktop disk typography */
+@media (min-width:901px){
+ .files-v2,.cloud-workspace,.desktop-workspace-panel{font-weight:400}
+ .files-v2 h1,.cloud-workspace h1{font-size:23px!important;font-weight:500!important;letter-spacing:-.02em}
+ .files-v2-row,.cloud-file-row{min-height:40px!important;font-size:13px!important;font-weight:400!important}
+ .files-v2-row b,.cloud-file-row b{font-size:13px!important;font-weight:400!important}
+ .files-v2-row small,.cloud-file-row small,.files-v2-table-head{font-size:11px!important;font-weight:400!important;color:#8a948e!important}
+ .files-v2-table-head{text-transform:uppercase;letter-spacing:.055em}
+ .files-v2-sidebar button,.cloud-sidebar button{font-size:12px!important;font-weight:400!important}
+ .files-v2-toolbar button,.cloud-toolbar button{font-size:12px!important;font-weight:500!important}
+ .files-v2-icon,.cloud-file-icon{transform:scale(.86)}
 }
 
-/* On iOS the dock is also hidden; add a small independent gesture-safe gap. */
-html[data-ui-mode="touch"][data-platform="ios"][data-call-active="true"] .call-controls{
-  padding-bottom:max(30px,calc(env(safe-area-inset-bottom) + 18px))!important;
+@media (max-width:900px){.checklist-card{border-radius:14px;padding:12px}.checklist-item span{font-size:13px}.checklist-remove{opacity:1}.workspace-list-grid{grid-template-columns:1fr}.lists-workspace{padding:0 14px 100px}.workspace-head-actions{justify-content:flex-end}.workspace-head-actions .primary{padding:9px 11px;font-size:12px}.bubble:has(.checklist-card){max-width:88%}}
+
+/* Mika 4.1 — Notes-style shared lists */
+.lists-workspace{
+  flex:1;
+  min-height:0;
+  height:100%;
+  overflow:hidden;
+  padding:0!important;
+  display:flex;
+  flex-direction:column;
+  background:#fbfcfb;
+}
+.lists-workspace>.workspace-header{flex:0 0 auto;position:relative;top:auto!important;transform:none!important}
+.notes-list-index{flex:1;min-height:0;overflow:auto;padding:12px 24px 28px;display:flex;flex-direction:column}
+.notes-list-row{width:100%;min-height:58px;border:0;border-bottom:1px solid #e8ece9;background:transparent;display:grid;grid-template-columns:minmax(0,1fr) auto 20px;align-items:center;gap:12px;padding:8px 4px;text-align:left;color:#18211d;cursor:pointer}
+.notes-list-row:hover{background:#f6f8f6}
+.notes-list-row>div{min-width:0;display:grid;gap:3px}.notes-list-row b{font-size:15px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.notes-list-row small{font-size:11px;font-weight:400;color:#8a938e}.notes-list-row>span{font-size:12px;color:#818b85}.notes-list-row>i{font-style:normal;font-size:22px;color:#a4aca7}
+.lists-workspace.list-open{padding:0!important;overflow:hidden;background:#fff}
+.notes-checklist{width:100%;max-width:760px;margin:0 auto;background:#fff;color:#171b18;display:flex;flex-direction:column;min-height:0}
+.notes-checklist.focused{flex:1;height:100%;max-width:none;margin:0;overflow:hidden}
+.notes-checklist-header{flex:0 0 auto;padding:26px 30px 12px;background:#fff;border-bottom:1px solid #eceeec}
+.notes-checklist-title-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px}
+.notes-back{border:0;background:transparent;color:#6f877a;font-size:34px;line-height:1;padding:0 4px 2px;cursor:pointer}
+.notes-title{border:0;background:transparent;padding:0;text-align:left;color:#171b18;font-size:29px;line-height:1.15;font-weight:600;letter-spacing:-.025em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:text}
+.notes-checklist-title-row>span{font-size:12px;color:#8b938e;white-space:nowrap}
+.notes-items{flex:1;min-height:0;overflow:auto;padding:8px 30px 32px;background:#fff}
+.notes-item{min-height:45px;display:grid;grid-template-columns:27px minmax(0,1fr) 30px;align-items:center;gap:10px;border-bottom:1px solid #eceeec}
+.notes-check{width:22px;height:22px;border:1.5px solid #aeb7b1;border-radius:50%;padding:0;background:#fff;color:#fff;display:grid;place-items:center;font-size:14px;font-weight:700;cursor:pointer}
+.notes-check.empty{display:block;pointer-events:none}
+.notes-item.done .notes-check{background:#6f887a;border-color:#6f887a}.notes-item.done .notes-item-text{text-decoration:line-through;color:#a0a7a3}
+.notes-item-text,.notes-item-edit,.notes-new-item>input{width:100%;border:0;background:transparent;padding:11px 0;font:400 15px/1.35 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#1b211d;text-align:left;outline:0;min-width:0}
+.notes-item-text{cursor:text}.notes-item-edit{border-bottom:1px solid #789082}
+.notes-remove,.notes-new-item>button{width:30px;height:30px;border:0;background:transparent;color:#a5ada8;font-size:20px;opacity:0;cursor:pointer}
+.notes-item:hover .notes-remove,.notes-item:focus-within .notes-remove{opacity:1}.notes-new-item>button{opacity:1;color:#6d8478}.notes-new-item>button:disabled{opacity:.25}
+.notes-new-item{border-bottom:0}.notes-new-item>input::placeholder{color:#a4aba7}
+.lists-return{position:absolute;right:22px;bottom:18px;z-index:2;box-shadow:0 8px 22px rgba(23,35,28,.09)}
+.notes-create-modal{width:min(430px,calc(100vw - 28px));overflow:visible!important}.notes-create-modal label{margin:16px 0 0}.notes-create-modal .modal-actions{margin-top:22px}
+
+/* Mika 4.1 — make every desktop disk label smaller and lighter */
+@media (min-width:901px){
+  .cloud-workspace,.cloud-workspace *:not(svg):not(path),.files-v2,.files-v2 *:not(svg):not(path){font-weight:400!important}
+  .cloud-workspace h1,.files-v2 h1{font-size:21px!important;font-weight:500!important}
+  .cloud-workspace h2,.files-v2 h2{font-size:15px!important;font-weight:500!important}
+  .cloud-workspace button,.files-v2 button,.cloud-workspace input,.files-v2 input,.cloud-workspace select,.files-v2 select{font-size:12px!important;font-weight:400!important}
+  .cloud-workspace .file-row,.files-v2 .files-v2-row{min-height:36px!important;padding-top:5px!important;padding-bottom:5px!important}
+  .cloud-workspace .file-row b,.files-v2 .files-v2-row b{font-size:12.5px!important;font-weight:400!important}
+  .cloud-workspace .file-row small,.files-v2 .files-v2-row small,.cloud-workspace .file-table-head,.files-v2 .files-v2-table-head{font-size:10.5px!important;font-weight:400!important}
+  .cloud-workspace .cloud-sidebar button,.files-v2 .files-v2-sidebar button{font-size:11.5px!important;font-weight:400!important}
 }
 
-/* ===== Release Mika 3.2 ===== */
-
-/* Item 5: Messages alignment - outgoing on right, incoming on left */
-.message-item .bubble.mine {
-  background: var(--msg-mine-bg, #1a6c3c);
-  color: #fff;
-  border-bottom-right-radius: 4px;
-}
-.message-item .bubble {
-  background: var(--msg-other-bg, #1a1f2e);
-  border-bottom-left-radius: 4px;
+@media (max-width:900px){
+  .lists-workspace{padding-bottom:var(--mobile-dock-height,72px)!important}
+  .notes-list-index{padding:4px 16px 20px}
+  .notes-checklist.focused{height:calc(100dvh - var(--mobile-dock-height,72px))}
+  .notes-checklist-header{padding:calc(16px + env(safe-area-inset-top)) 16px 10px}
+  .notes-title{font-size:25px}.notes-items{padding:4px 16px 24px}.notes-item{min-height:46px}.notes-item-text,.notes-item-edit,.notes-new-item>input{font-size:16px}
+  .notes-remove{opacity:1}.lists-return{display:none}
 }
 
-/* Bubble meta (time+ticks inside outgoing bubble) */
-.bubble-meta {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  justify-content: flex-end;
-  margin-top: 4px;
-  font-size: 0.7rem;
-  opacity: 0.7;
+/* Mika 4.2 — desktop applications + collaborative lists */
+@media (min-width:901px) and (hover:hover) and (pointer:fine){
+  .apps-workspace-v2{display:grid!important;grid-template-columns:minmax(0,1fr) 286px!important;overflow:hidden!important;background:#f7faf7!important}
+  .apps-main-pane{min-width:0;display:flex;flex-direction:column;overflow:hidden;background:#fbfcfb}
+  .apps-main-header{padding-right:24px!important}
+  .apps-content-scroll{min-height:0;overflow:auto;padding:24px 28px 34px}
+  .apps-section>h2{margin:0 0 14px;font-size:14px;font-weight:570;color:#39453e;letter-spacing:.01em}
+  .apps-grid-v2{padding:0!important;display:grid!important;grid-template-columns:repeat(auto-fill,minmax(230px,1fr))!important;gap:12px!important}
+  .apps-divider{height:1px;border:0;background:#e3e9e5;margin:28px 0 22px}
+  .apps-empty-note{font-size:13px;color:#8b948f;padding:14px 2px}
+  .apps-list-rows{display:grid;gap:2px}
+  .apps-list-rows>button{width:100%;min-height:56px;border:0;border-bottom:1px solid #e9edea;background:transparent;display:grid;grid-template-columns:minmax(0,1fr) auto 22px;align-items:center;gap:12px;padding:8px 6px;text-align:left;color:#263129;cursor:pointer}
+  .apps-list-rows>button:hover{background:#f1f5f2;border-radius:11px}
+  .apps-list-rows span{min-width:0;display:flex;flex-direction:column;gap:3px}.apps-list-rows b{font-size:14px;font-weight:520}.apps-list-rows small{font-size:11px;color:#8b948f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.apps-list-rows em{font-style:normal;font-size:12px;color:#758178}.apps-list-rows i{font-style:normal;color:#93a098;font-size:19px}
+  .apps-action-column{border-left:1px solid #e2e8e4;background:#f4f7f4;padding:22px 18px;display:flex;flex-direction:column;gap:10px;overflow:auto}
+  .apps-action-button{width:100%;border:1px solid #dfe7e1;border-radius:15px;background:#fff;display:grid;grid-template-columns:38px minmax(0,1fr);align-items:center;gap:11px;padding:12px;text-align:left;color:#2f3b34;cursor:pointer;box-shadow:0 5px 16px rgba(61,79,67,.035)}
+  .apps-action-button:hover{border-color:#c9d8ce;transform:translateY(-1px)}.apps-action-button>span{width:36px;height:36px;border-radius:11px;background:#e4eee7;color:#4b7059;display:grid;place-items:center;font-size:23px;font-weight:350}.apps-action-button>div{display:flex;flex-direction:column;gap:2px}.apps-action-button b{font-size:13px;font-weight:600}.apps-action-button small{font-size:10px;color:#87928b}
+  .apps-action-separator{height:1px;background:#dde5df;margin:8px 0 2px}.apps-back-messenger,.lists-messenger-return{border:0;background:transparent;color:#526a5c;font-size:12px;font-weight:600;padding:10px 4px;text-align:left;cursor:pointer}
+  .apps-back-messenger{margin-top:auto}
+  .compact-list-stage{min-height:0;overflow:auto;display:flex;flex-direction:column;align-items:flex-start;padding:24px 30px 30px}
+  .compact-list-stage .notes-checklist{width:min(48%,540px)!important;min-width:390px!important;max-width:540px!important;min-height:420px!important;max-height:calc(100vh - 170px)!important;margin:0!important;border:1px solid #e2e7e3!important;border-radius:18px!important;box-shadow:0 16px 44px rgba(40,58,47,.08)!important;overflow:hidden!important}
+  .compact-list-stage .notes-checklist.focused{height:auto!important;flex:none!important}
+  .compact-list-stage .notes-checklist-header{padding:20px 22px 11px!important}.compact-list-stage .notes-items{overflow:auto!important;padding-bottom:12px}
+  .lists-messenger-return{margin-top:12px}
 }
-.bubble-meta time {
-  color: inherit;
-}
-.bubble-meta .message-ticks {
-  font-size: 0.7rem;
+.standalone-list-create{width:min(520px,calc(100vw - 32px));max-height:calc(100dvh - 34px);overflow:auto}
+.collaborators-head{display:flex;flex-direction:column;gap:3px;margin:16px 0 8px}.collaborators-head b{font-size:13px}.collaborators-head small{font-size:11px;color:#818c85}.collaborator-search{width:100%;height:40px;border:1px solid #dfe5e1;border-radius:11px;background:#fff;padding:0 12px;font:inherit}.collaborator-list{margin-top:8px;max-height:230px;overflow:auto;border:1px solid #e4e9e6;border-radius:12px;background:#fff}.collaborator-row{display:grid!important;grid-template-columns:22px 34px minmax(0,1fr);align-items:center;gap:9px;padding:8px 10px!important;margin:0!important;border-bottom:1px solid #edf0ee;cursor:pointer}.collaborator-row:last-child{border-bottom:0}.collaborator-row>input{width:17px!important;height:17px!important}.collaborator-avatar{width:32px;height:32px;border-radius:50%;object-fit:cover;background:#e5ece7;display:grid;place-items:center}.collaborator-row>span{display:flex;flex-direction:column;gap:1px}.collaborator-row b{font-size:13px;font-weight:520}.collaborator-row small{font-size:10px;color:#8c958f}.collaborator-state{padding:18px;text-align:center;color:#8a948e;font-size:12px}
+
+/* Mika 4.3.1 — compact unified workspace tiles */
+@media (min-width:901px) and (hover:hover) and (pointer:fine){
+  .apps-workspace-v2 .apps-content-scroll{padding:20px 24px 30px}
+  .apps-workspace-v2 .apps-section>h2{margin-bottom:11px;font-size:13px;font-weight:560}
+  .apps-workspace-v2 .workspace-object-grid{
+    grid-template-columns:repeat(auto-fill,minmax(175px,1fr))!important;
+    gap:9px!important;
+  }
+  .apps-workspace-v2 .workspace-object-tile{
+    min-height:72px!important;
+    height:72px!important;
+    grid-template-columns:40px minmax(0,1fr) 18px!important;
+    gap:10px!important;
+    padding:10px 12px!important;
+    border-radius:14px!important;
+    box-shadow:0 3px 12px rgba(54,75,61,.035)!important;
+  }
+  .apps-workspace-v2 .workspace-object-tile>span{
+    width:38px!important;height:38px!important;border-radius:11px!important;
+    font-size:15px!important;font-weight:650!important;
+  }
+  .apps-workspace-v2 .workspace-object-tile b{
+    display:block;font-size:13px!important;font-weight:560!important;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .apps-workspace-v2 .workspace-object-tile small{
+    display:block;font-size:10px!important;font-weight:400!important;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .apps-workspace-v2 .workspace-object-tile>i{font-size:16px!important}
+  .apps-workspace-v2 .workspace-object-tile .app-edit-inline{
+    right:5px;top:4px;width:25px;height:25px;border-radius:8px;font-size:16px;
+    opacity:0;transition:opacity .12s ease;
+  }
+  .apps-workspace-v2 .workspace-object-tile:hover .app-edit-inline,
+  .apps-workspace-v2 .workspace-object-tile:focus-within .app-edit-inline{opacity:1}
+  .apps-workspace-v2 .checklist-tile>span{background:#e8eee9!important;color:#52705d!important}
 }
 
-/* Item 6: Apps - display all slots properly */
-.apps-workspace .apps-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 12px;
-  padding: 16px;
-}
-
-/* Item 7: Group Resources */
-.inspector-section .resource-list button {
-  cursor: pointer;
-}
-.inspector-section .resource-open-button {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 8px 12px;
-  border: none;
-  background: rgba(255,255,255,0.05);
-  border-radius: 8px;
-  color: var(--text, #ddd);
-  text-align: left;
-  font-size: 0.9rem;
-  transition: background 0.15s;
-}
-.inspector-section .resource-open-button:hover {
-  background: rgba(255,255,255,0.1);
-}
-.resource-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  background: var(--accent, #2d7e4f);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  color: #fff;
-  flex-shrink: 0;
-}
-.resource-list { display: flex; flex-direction: column; gap: 6px; }
-
-/* Item 9: Android backdrop - hide when not needed */
-.touch-ui .attach-backdrop {
-  background: rgba(0,0,0,0.4);
-  backdrop-filter: blur(2px);
-}
-.touch-ui:not(.attach-menu-open) .attach-backdrop {
-  display: none;
-}
-/* On Android/touch main view, no decorative backdrop covering touch areas */
-.touch-ui .app > .global-search-overlay,
-.touch-ui .app > .modal {
-  z-index: 1000;
-}
-.touch-ui main {
-  touch-action: pan-y pinch-zoom;
-}
-
-/* Item 10: Call hides dock & composer */
-[data-call-active="true"] .viewport-composer,
-[data-call-active="true"] .viewport-dock {
-  display: none !important;
-}
-
-/* Item 11: Touch UI landscape support */
-.orientation-landscape.touch-ui .app {
-  flex-direction: row;
-}
-.touch-ui.orientation-landscape .chat-sidebar {
-  width: var(--chats-width, 320px);
-  max-width: 40vw;
-}
-.touch-ui.orientation-landscape .messages {
-  height: calc(100vh - 120px);
-}
-.touch-ui.orientation-landscape .mobile-main-dock {
-  display: none;
-}
-/* When Touch UI orientation guard is skipped */
-.device-phone.orientation-landscape .messages {
-  height: calc(100vh - 50px);
-}
-.orientation-guard-hidden .rotate-device-overlay {
-  display: none !important;
-}
-
-/* Item 12: Call overlay in Touch UI */
-.touch-ui .call-layer {
-  position: fixed;
-  inset: 0;
-  z-index: 10000;
-  background: var(--bg-primary, #0d1117);
-}
-
-/* Item 13: Disk usage - display area */
-.storage-usage-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  font-size: 0.8rem;
-  opacity: 0.7;
-}
-.storage-usage-bar .bar {
-  flex: 1;
-  height: 4px;
-  background: rgba(255,255,255,0.1);
-  border-radius: 2px;
-  overflow: hidden;
-}
-.storage-usage-bar .fill {
-  height: 100%;
-  background: var(--accent, #2d7e4f);
-  border-radius: 2px;
-  transition: width 0.3s;
-}
-.storage-usage-bar .used-text {
-  white-space: nowrap;
-  color: var(--text-secondary, #999);
-}
-
-/* Item 14: Sound - ensure audio context stays alive */
-audio {
-  -webkit-playsinline: 1;
-  playsinline: true;
-}
-
-/* Bubble messages - right side for outgoing */
-.message-item.mine {
-  justify-content: flex-end;
-}
-.message-item {
-  display: flex;
-  margin-bottom: 6px;
-}
-.message-item .bubble {
-  max-width: 75%;
-  padding: 8px 12px;
-  border-radius: 12px;
-  word-break: break-word;
-  position: relative;
-}
-
-/* Contact card view/edit mode */
-.contact-pref-view {
-  padding: 8px 12px;
-}
-.contact-pref-view .pref-row {
-  display: flex;
-  padding: 6px 0;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-}
-.contact-pref-view .pref-label {
-  width: 80px;
-  flex-shrink: 0;
-  font-weight: 600;
-  font-size: 0.8rem;
-  color: var(--text-secondary, #999);
-}
-.contact-pref-view .pref-value {
-  font-size: 0.9rem;
-}
-.contact-pref-edit .field-row {
-  margin-bottom: 10px;
-}
-.contact-pref-edit .field-row label {
-  display: block;
-  font-size: 0.75rem;
-  color: var(--text-secondary, #999);
-  margin-bottom: 4px;
-}
-.contact-pref-edit .field-row input,
-.contact-pref-edit .field-row textarea,
-.contact-pref-edit .field-row select {
-  width: 100%;
-  padding: 8px 10px;
-  border: 1px solid rgba(255,255,255,0.15);
-  border-radius: 8px;
-  background: rgba(0,0,0,0.2);
-  color: #fff;
-  font-size: 0.9rem;
-}
-.contact-pref-edit .field-row textarea {
-  resize: vertical;
-  min-height: 60px;
-}
-.contact-pref-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
-}
-.contact-pref-actions button {
-  padding: 6px 14px;
-  border-radius: 8px;
-  border: none;
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: opacity 0.15s;
-}
-.contact-pref-actions button.primary {
-  background: var(--accent, #2d7e4f);
-  color: #fff;
-}
-.contact-pref-actions button.secondary {
-  background: rgba(255,255,255,0.1);
-  color: #ccc;
-}
-.contact-pref-actions button.danger {
-  background: rgba(255,50,50,0.2);
-  color: #f66;
-}
-/* Mobile info panel contact card */
-.mobile-section .contact-pref-view,
-.mobile-section .contact-pref-edit {
-  padding: 0;
-}
-
-/* ===== Contact Preferences View/Edit Mode ===== */
-.contact-preferences-section {
-  padding: 0;
-}
-.contact-pref-view {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 4px 0;
-}
-.contact-pref-view .pref-row {
-  display: flex;
-  padding: 6px 12px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-}
-.contact-pref-view .pref-row:last-child {
-  border-bottom: none;
-}
-.contact-pref-view .pref-label {
-  width: 80px;
-  flex-shrink: 0;
-  font-weight: 600;
-  font-size: 0.75rem;
-  color: var(--text-secondary, #999);
-  padding-top: 1px;
-}
-.contact-pref-view .pref-value {
-  font-size: 0.85rem;
-  word-break: break-word;
-}
-.contact-pref-edit {
-  padding: 8px 0;
-}
-.contact-pref-edit .pref-row {
-  display: flex;
-  padding: 6px 12px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-}
-.contact-pref-edit .pref-label {
-  width: 80px;
-  flex-shrink: 0;
-  font-weight: 600;
-  font-size: 0.75rem;
-  color: var(--text-secondary, #999);
-  padding-top: 7px;
-}
-.contact-pref-edit .pref-value {
-  font-size: 0.85rem;
-  word-break: break-word;
-  padding-top: 7px;
-}
-.contact-pref-edit .pref-field {
-  display: flex;
-  flex-direction: column;
-  padding: 8px 12px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-}
-.contact-pref-edit .pref-field span {
-  font-size: 0.75rem;
-  color: var(--text-secondary, #999);
-  margin-bottom: 4px;
-}
-.contact-pref-edit .pref-field input,
-.contact-pref-edit .pref-field select,
-.contact-pref-edit .pref-field textarea {
-  width: 100%;
-  padding: 8px 10px;
-  border: 1px solid rgba(255,255,255,0.15);
-  border-radius: 8px;
-  background: rgba(0,0,0,0.2);
-  color: #fff;
-  font-size: 0.9rem;
-  box-sizing: border-box;
-}
-.contact-pref-edit .pref-field textarea {
-  resize: vertical;
-  min-height: 50px;
-}
-.contact-pref-edit .pref-field select {
-  cursor: pointer;
-}
-.contact-pref-edit .pref-field select option {
-  background: #1a1f2e;
-  color: #fff;
-}
-.contact-pref-actions {
-  display: flex;
-  gap: 8px;
-  padding: 10px 12px;
-  justify-content: flex-end;
-}
-.contact-pref-actions button {
-  padding: 8px 16px;
-  border-radius: 8px;
-  border: none;
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: opacity 0.15s;
-}
-.contact-pref-actions button:disabled {
-  opacity: 0.5;
-}
-.contact-pref-actions button.primary {
-  background: var(--accent, #2d7e4f);
-  color: #fff;
-  font-weight: 600;
-}
-.contact-pref-actions button.secondary {
-  background: rgba(255,255,255,0.1);
-  color: #ccc;
-}
-.contact-pref-edit-btn {
-  margin-left: auto;
-  padding: 4px 10px;
-  border: 1px solid rgba(255,255,255,0.2);
-  border-radius: 6px;
-  background: transparent;
-  color: var(--accent, #2d7e4f);
-  font-size: 0.75rem;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-.contact-pref-edit-btn:hover {
-  background: rgba(255,255,255,0.08);
-  border-color: var(--accent, #2d7e4f);
-}
-.contact-saved-tag {
-  padding: 3px 10px;
-  font-size: 0.7rem;
-  color: var(--accent, #2d7e4f);
-  text-align: right;
-  animation: fadeOut 1.5s ease forwards;
-}
-@keyframes fadeOut {
-  0% { opacity: 1; }
-  80% { opacity: 1; }
-  100% { opacity: 0; }
-}
-
-/* Desktop inspector compact mode */
-.inspector-section.contact-preferences-section.compact .contact-pref-view,
-.inspector-section.contact-preferences-section.compact .contact-pref-edit {
-  padding: 0;
-}
-.inspector-section.contact-preferences-section.compact .pref-row,
-.inspector-section.contact-preferences-section.compact .pref-field {
-  padding: 5px 0;
-}
-.inspector-section.contact-preferences-section.compact .contact-pref-edit-btn {
-  font-size: 0.7rem;
-  padding: 2px 8px;
+@media (max-width:900px){
+  .workspace-object-grid{display:grid!important;grid-template-columns:1fr!important;gap:0!important;padding:0 16px 90px!important}
+  .workspace-object-tile{width:100%!important;min-height:62px!important;height:62px!important;border:0!important;border-bottom:1px solid rgba(61,78,67,.08)!important;border-radius:0!important;box-shadow:none!important;background:transparent!important;grid-template-columns:40px minmax(0,1fr) 20px!important;padding:9px 0!important}
+  .workspace-object-tile>span{width:36px!important;height:36px!important;border-radius:11px!important;font-size:15px!important}
+  .workspace-object-tile b{font-size:14px!important;font-weight:540!important}.workspace-object-tile small{font-size:11px!important}
 }

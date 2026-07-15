@@ -68,7 +68,6 @@ class User(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     last_seen = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=True)
     home_links = Column(Text, nullable=True)
-    phone = Column(String(30), nullable=True)
     chats = relationship("Chat", secondary=chat_members, back_populates="members")
 
 class Chat(Base):
@@ -79,6 +78,7 @@ class Chat(Base):
     avatar_url = Column(String, nullable=True)
     owner_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     quick_links = Column(Text, nullable=True)
+    is_hidden = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     members = relationship("User", secondary=chat_members, back_populates="chats")
     messages = relationship("Message", back_populates="chat", cascade="all,delete-orphan")
@@ -103,9 +103,32 @@ class Message(Base):
     file_url = Column(String, nullable=True)
     file_name = Column(String, nullable=True)
     mime_type = Column(String, nullable=True)
+    checklist_id = Column(Integer, ForeignKey("checklists.id"), nullable=True, index=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     chat = relationship("Chat", back_populates="messages")
     sender = relationship("User")
+
+
+class Checklist(Base):
+    __tablename__ = "checklists"
+    id = Column(Integer, primary_key=True)
+    chat_id = Column(Integer, ForeignKey("chats.id"), index=True, nullable=False)
+    title = Column(String(160), nullable=False)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+class ChecklistItem(Base):
+    __tablename__ = "checklist_items"
+    id = Column(Integer, primary_key=True)
+    checklist_id = Column(Integer, ForeignKey("checklists.id"), index=True, nullable=False)
+    text = Column(String(500), nullable=False)
+    checked = Column(Boolean, default=False, nullable=False)
+    position = Column(Integer, default=0, nullable=False)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    updated_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 
 class SharedFile(Base):
@@ -154,16 +177,6 @@ def initialize_database(max_attempts: int = 30, delay_seconds: int = 2) -> None:
     last_error = None
     for attempt in range(1, max_attempts + 1):
         try:
-            try:
-                from sqlalchemy import inspect as sa_inspect
-                inspector = sa_inspect(engine)
-                if "users" in inspector.get_table_names():
-                    cols = [c["name"] for c in inspector.get_columns("users")]
-                    if "phone" not in cols:
-                        with engine.begin() as conn:
-                            conn.execute(text("ALTER TABLE users ADD COLUMN phone VARCHAR(30)"))
-            except Exception:
-                pass
             Base.metadata.create_all(engine)
             return
         except Exception as exc:
@@ -192,11 +205,16 @@ try:
             conn.execute(text("ALTER TABLE chats ADD COLUMN owner_id INTEGER"))
         if "quick_links" not in chat_columns:
             conn.execute(text("ALTER TABLE chats ADD COLUMN quick_links TEXT"))
+        if "is_hidden" not in chat_columns:
+            conn.execute(text("ALTER TABLE chats ADD COLUMN is_hidden BOOLEAN NOT NULL DEFAULT FALSE"))
         member_columns = {c["name"] for c in inspect(engine).get_columns("chat_members")}
         if "role" not in member_columns:
             conn.execute(text("ALTER TABLE chat_members ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'member'"))
         if "expires_at" not in member_columns:
             conn.execute(text("ALTER TABLE chat_members ADD COLUMN expires_at TIMESTAMP"))
+        message_columns = {c["name"] for c in inspect(engine).get_columns("messages")}
+        if "checklist_id" not in message_columns:
+            conn.execute(text("ALTER TABLE messages ADD COLUMN checklist_id INTEGER"))
         contact_columns = {c["name"] for c in inspect(engine).get_columns("contact_categories")}
         if "alias" not in contact_columns:
             conn.execute(text("ALTER TABLE contact_categories ADD COLUMN alias VARCHAR(80)"))
@@ -245,6 +263,22 @@ class MsgIn(BaseModel):
     file_url: Optional[str] = None
     file_name: Optional[str] = None
     mime_type: Optional[str] = None
+
+class ChecklistCreateIn(BaseModel):
+    title: str
+    items: list[str] = []
+    member_ids: list[int] = []
+
+class ChecklistUpdateIn(BaseModel):
+    title: Optional[str] = None
+
+class ChecklistItemCreateIn(BaseModel):
+    text: str
+
+class ChecklistItemUpdateIn(BaseModel):
+    text: Optional[str] = None
+    checked: Optional[bool] = None
+    position: Optional[int] = None
 
 class ProfileIn(BaseModel):
     display_name: Optional[str] = None
@@ -334,13 +368,25 @@ def user_out(u):
     return {
         "id": u.id, "username": u.username,
         "display_name": getattr(u, "display_name", None) or u.username,
-        "phone": getattr(u, "phone", None) or None,
         "avatar_url": getattr(u, "avatar_url", None),
         "online": online,
         "last_seen": iso_utc(getattr(u, "last_seen", None) or getattr(u, "created_at", None) or datetime.now(timezone.utc)),
         "home_links": json.loads(getattr(u, "home_links", None)) if getattr(u, "home_links", None) else [],
     }
 
+
+def checklist_out(row: Checklist, s: Session):
+    items = s.query(ChecklistItem).filter_by(checklist_id=row.id).order_by(ChecklistItem.position, ChecklistItem.id).all()
+    chat = s.get(Chat, row.chat_id)
+    members = [user_out(member) for member in (chat.members if chat else [])]
+    return {
+        "id": row.id, "chat_id": row.chat_id, "title": row.title,
+        "created_by": row.created_by, "created_at": iso_utc(row.created_at), "updated_at": iso_utc(row.updated_at),
+        "standalone": bool(chat and getattr(chat, "is_hidden", False)),
+        "members": members,
+        "items": [{"id": i.id, "text": i.text, "checked": bool(i.checked), "position": i.position,
+                   "created_by": i.created_by, "updated_by": i.updated_by, "updated_at": iso_utc(i.updated_at)} for i in items],
+    }
 
 def msg_out(m, s: Session | None = None):
     status = "sent"
@@ -384,9 +430,6 @@ def chat_out(c, u):
     contact_category = None
     contact_alias = None
     contact_note = None
-    contact_phone = None
-    contact_login = None
-    contact_last_seen = None
     original_contact_name = None
     if other_member is not None:
         original_contact_name = getattr(other_member, "display_name", None) or other_member.username
@@ -396,9 +439,6 @@ def chat_out(c, u):
                 contact_category = row.category or None
                 contact_alias = (row.alias or "").strip() or None
                 contact_note = row.note or None
-                contact_phone = getattr(other_member, "phone", None) or None
-                contact_login = other_member.username or None
-                contact_last_seen = other_member.last_seen.isoformat() if getattr(other_member, "last_seen", None) else None
     title = c.name if c.is_group else (contact_alias or original_contact_name or (getattr(u, "display_name", None) or u.username))
     last = max(c.messages, key=lambda m: m.id, default=None)
     # Непрочитанные считаются по квитанциям конкретного пользователя.
@@ -434,9 +474,6 @@ def chat_out(c, u):
         "contact_category": contact_category,
         "contact_alias": contact_alias,
         "contact_note": contact_note,
-        "contact_phone": contact_phone,
-        "contact_login": contact_login,
-        "contact_last_seen": contact_last_seen,
         "contact_original_name": original_contact_name,
         "contact_id": other_member.id if other_member is not None else None,
         "members": members,
@@ -564,7 +601,7 @@ def global_search(q: str = "", kind: str = "all", chat_id: Optional[int] = None,
         result["users"] = [user_out(x) for x in rows]
 
     if kind in ("all", "chats"):
-        result["chats"] = [chat_out(c, u) for c in u.chats if query.lower() in chat_out(c, u)["name"].lower()][:20]
+        result["chats"] = [chat_out(c, u) for c in u.chats if not getattr(c, "is_hidden", False) and query.lower() in chat_out(c, u)["name"].lower()][:20]
 
     if allowed_chat_ids:
         base = s.query(Message).filter(Message.chat_id.in_(allowed_chat_ids))
@@ -606,7 +643,7 @@ def global_search(q: str = "", kind: str = "all", chat_id: Optional[int] = None,
 
 @app.get("/api/chats")
 def chats(u=Depends(current_user)):
-    return sorted([chat_out(c, u) for c in u.chats], key=lambda c: c["last_message"]["id"] if c["last_message"] else 0, reverse=True)
+    return sorted([chat_out(c, u) for c in u.chats if not getattr(c, "is_hidden", False)], key=lambda c: c["last_message"]["id"] if c["last_message"] else 0, reverse=True)
 
 @app.post("/api/chats")
 def create_chat(x: ChatIn, u=Depends(current_user), s: Session = Depends(db)):
@@ -774,19 +811,6 @@ def require_storage_item(item_id: int, u: User, s: Session) -> StorageItem:
         raise HTTPException(404, "Элемент хранилища не найден")
     return item
 
-def storage_build_relative_path(s: Session, item: StorageItem, root_item: StorageItem) -> str:
-    parts = []
-    cur = item
-    while cur is not None and cur.id != root_item.id:
-        parts.append(cur.name)
-        if cur.parent_id is not None:
-            cur = s.get(StorageItem, cur.parent_id)
-        else:
-            break
-    parts.reverse()
-    return "/".join(parts) if parts else item.name
-
-
 def storage_descendants(s: Session, owner_id: int, parent_id: int) -> list[StorageItem]:
     result = []
     children = s.query(StorageItem).filter_by(owner_id=owner_id, parent_id=parent_id).all()
@@ -814,7 +838,7 @@ def storage_list(parent_id: Optional[int] = None, u=Depends(current_user), s: Se
         "parent_id": parent_id,
         "used_bytes": int(used_bytes),
         "quota_bytes": quota_bytes,
-        "usage_percent": round((int(used_bytes) / quota_bytes) * 100, 2) if quota_bytes > 0 else 0,
+        "usage_percent": round((int(used_bytes) / quota_bytes) * 100, 1) if quota_bytes > 0 else 0,
     }
 
 @app.post("/api/storage/folders")
@@ -916,14 +940,22 @@ def storage_share(item_id: int, request: Request, u=Depends(current_user), s: Se
         descendants = [x for x in storage_descendants(s, u.id, item.id) if not x.is_folder and x.storage_name]
         storage_name = f"share-{token}.zip"
         zip_path = UPLOAD_DIR / storage_name
+        item_by_id = {x.id: x for x in s.query(StorageItem).filter(StorageItem.owner_id == u.id).all()}
+        def relative_archive_path(child):
+            parts = [child.name]
+            parent_id = child.parent_id
+            while parent_id and parent_id != item.id:
+                parent_item = item_by_id.get(parent_id)
+                if not parent_item:
+                    break
+                parts.append(parent_item.name)
+                parent_id = parent_item.parent_id
+            return "/".join(reversed(parts))
         with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
             for child in descendants:
                 source = UPLOAD_DIR / child.storage_name
                 if source.exists():
-                    # Build relative path preserving folder structure
-                    rel = storage_build_relative_path(s, child, item)
-                    arc = (item.name + "/" + rel) if rel else child.name
-                    zf.write(source, arcname=arc)
+                    zf.write(source, arcname=relative_archive_path(child))
         original_name = f"{item.name}.zip"; mime_type = "application/zip"; size = zip_path.stat().st_size
     else:
         storage_name = item.storage_name; original_name = item.name; mime_type = item.mime_type; size = item.size_bytes
@@ -1139,6 +1171,142 @@ async def send_message(cid: int, x: MsgIn, u=Depends(current_user), s: Session =
         if uid != u.id:
             send_push(s, uid, getattr(u, "display_name", None) or u.username, preview, f"/?chat={cid}")
     return msg_out(message, s)
+
+def _checklist_access(list_id: int, u, s: Session):
+    row = s.get(Checklist, list_id)
+    if not row:
+        raise HTTPException(404, "Список не найден")
+    chat = require_chat(row.chat_id, u, s)
+    if chat.is_group and role_for(chat, u.id) == "guest":
+        raise HTTPException(403, "Гость не может редактировать список")
+    return row, chat
+
+async def _broadcast_checklist(row: Checklist, chat: Chat, s: Session):
+    await hub.send_users([m.id for m in chat.members], {"type": "checklist_update", "checklist": checklist_out(row, s)})
+
+@app.get("/api/checklists")
+def all_checklists(u=Depends(current_user), s: Session = Depends(db)):
+    chat_ids = [c.id for c in u.chats]
+    rows = s.query(Checklist).filter(Checklist.chat_id.in_(chat_ids)).order_by(Checklist.updated_at.desc()).all() if chat_ids else []
+    chats_by_id = {c.id: c for c in u.chats}
+    result = []
+    for row in rows:
+        chat = chats_by_id.get(row.chat_id)
+        payload = checklist_out(row, s)
+        payload["chat"] = {"id": row.chat_id, "name": "Совместный список" if chat and getattr(chat, "is_hidden", False) else (chat_out(chat, u)["name"] if chat else "Чат")}
+        result.append(payload)
+    return result
+
+@app.post("/api/checklists")
+async def create_standalone_checklist(x: ChecklistCreateIn, u=Depends(current_user), s: Session = Depends(db)):
+    title = x.title.strip()
+    if not title:
+        raise HTTPException(400, "Введите название списка")
+    selected_ids = []
+    for uid in x.member_ids[:100]:
+        try:
+            value = int(uid)
+        except (TypeError, ValueError):
+            continue
+        if value != u.id and value not in selected_ids:
+            selected_ids.append(value)
+    selected = s.query(User).filter(User.id.in_(selected_ids)).all() if selected_ids else []
+    if len(selected) != len(selected_ids):
+        raise HTTPException(400, "Один из выбранных пользователей не найден")
+    chat = Chat(name=f"Список: {title[:100]}", is_group=True, owner_id=u.id, is_hidden=True)
+    chat.members = [u, *selected]
+    s.add(chat); s.flush()
+    row = Checklist(chat_id=chat.id, title=title[:160], created_by=u.id)
+    s.add(row); s.commit(); s.refresh(row)
+    await _broadcast_checklist(row, chat, s)
+    return checklist_out(row, s)
+
+@app.get("/api/chats/{cid}/checklists")
+def chat_checklists(cid: int, u=Depends(current_user), s: Session = Depends(db)):
+    require_chat(cid, u, s)
+    return [checklist_out(r, s) for r in s.query(Checklist).filter_by(chat_id=cid).order_by(Checklist.updated_at.desc()).all()]
+
+@app.post("/api/chats/{cid}/checklists")
+async def create_checklist(cid: int, x: ChecklistCreateIn, u=Depends(current_user), s: Session = Depends(db)):
+    chat = require_chat(cid, u, s)
+    if chat.is_group and role_for(chat, u.id) == "guest":
+        raise HTTPException(403, "Гость не может создавать списки")
+    title = x.title.strip()
+    if not title:
+        raise HTTPException(400, "Введите название списка")
+    row = Checklist(chat_id=cid, title=title[:160], created_by=u.id)
+    s.add(row); s.flush()
+    for pos, value in enumerate(x.items[:100]):
+        value = value.strip()
+        if value:
+            s.add(ChecklistItem(checklist_id=row.id, text=value[:500], position=pos, created_by=u.id))
+    message = Message(chat_id=cid, sender_id=u.id, text="", checklist_id=row.id)
+    s.add(message); s.commit(); s.refresh(row); s.refresh(message)
+    ids = [member.id for member in chat.members]
+    for uid in ids:
+        if uid != u.id:
+            s.add(MessageReceipt(message_id=message.id, user_id=uid))
+    s.commit()
+    await hub.send_users(ids, {"type": "message", "message": msg_out(message, s)})
+    return checklist_out(row, s)
+
+@app.patch("/api/checklists/{list_id}")
+async def update_checklist(list_id: int, x: ChecklistUpdateIn, u=Depends(current_user), s: Session = Depends(db)):
+    row, chat = _checklist_access(list_id, u, s)
+    if x.title is not None:
+        title = x.title.strip()
+        if not title: raise HTTPException(400, "Название не может быть пустым")
+        row.title = title[:160]
+    row.updated_at = datetime.now(timezone.utc); s.commit(); s.refresh(row)
+    await _broadcast_checklist(row, chat, s)
+    return checklist_out(row, s)
+
+@app.delete("/api/checklists/{list_id}")
+async def delete_checklist(list_id: int, u=Depends(current_user), s: Session = Depends(db)):
+    row, chat = _checklist_access(list_id, u, s)
+    message_ids = [m.id for m in s.query(Message).filter_by(checklist_id=row.id).all()]
+    if message_ids:
+        s.query(MessageReceipt).filter(MessageReceipt.message_id.in_(message_ids)).delete(synchronize_session=False)
+        s.query(Message).filter(Message.id.in_(message_ids)).delete(synchronize_session=False)
+    s.query(ChecklistItem).filter_by(checklist_id=row.id).delete(synchronize_session=False)
+    s.delete(row); s.commit()
+    await hub.send_users([m.id for m in chat.members], {"type": "checklist_delete", "checklist_id": list_id})
+    return {"ok": True}
+
+@app.post("/api/checklists/{list_id}/items")
+async def add_checklist_item(list_id: int, x: ChecklistItemCreateIn, u=Depends(current_user), s: Session = Depends(db)):
+    row, chat = _checklist_access(list_id, u, s)
+    value = x.text.strip()
+    if not value: raise HTTPException(400, "Пункт не может быть пустым")
+    last = s.query(func.max(ChecklistItem.position)).filter_by(checklist_id=list_id).scalar()
+    item = ChecklistItem(checklist_id=list_id, text=value[:500], position=(last or 0)+1, created_by=u.id, updated_by=u.id)
+    s.add(item); row.updated_at=datetime.now(timezone.utc); s.commit(); s.refresh(row)
+    await _broadcast_checklist(row, chat, s)
+    return checklist_out(row, s)
+
+@app.patch("/api/checklists/{list_id}/items/{item_id}")
+async def update_checklist_item(list_id: int, item_id: int, x: ChecklistItemUpdateIn, u=Depends(current_user), s: Session = Depends(db)):
+    row, chat = _checklist_access(list_id, u, s)
+    item = s.query(ChecklistItem).filter_by(id=item_id, checklist_id=list_id).first()
+    if not item: raise HTTPException(404, "Пункт не найден")
+    if x.text is not None:
+        value=x.text.strip()
+        if not value: raise HTTPException(400, "Пункт не может быть пустым")
+        item.text=value[:500]
+    if x.checked is not None: item.checked=bool(x.checked)
+    if x.position is not None: item.position=max(0,int(x.position))
+    item.updated_by=u.id; row.updated_at=datetime.now(timezone.utc); s.commit(); s.refresh(row)
+    await _broadcast_checklist(row, chat, s)
+    return checklist_out(row, s)
+
+@app.delete("/api/checklists/{list_id}/items/{item_id}")
+async def delete_checklist_item(list_id: int, item_id: int, u=Depends(current_user), s: Session = Depends(db)):
+    row, chat = _checklist_access(list_id, u, s)
+    item=s.query(ChecklistItem).filter_by(id=item_id, checklist_id=list_id).first()
+    if not item: raise HTTPException(404, "Пункт не найден")
+    s.delete(item); row.updated_at=datetime.now(timezone.utc); s.commit(); s.refresh(row)
+    await _broadcast_checklist(row, chat, s)
+    return checklist_out(row, s)
 
 @app.get("/api/push/public-key")
 def vapid_key():

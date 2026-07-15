@@ -4,174 +4,33 @@ import{createPortal}from'react-dom';
 import'./style.css';
 
 const API=import.meta.env.VITE_API_URL||'';
-const APP_VERSION='2026.07.14-touch-shell-r3-call-layout';
+const APP_VERSION='2026.07.15-apps-lists-v2-workspace-compact-1';
 const CALL_INVITE_TTL_MS=120000;
 const MESSAGE_SOUND_URL='/sounds/incoming-message.mp3';
-const messageSound={audio:null,ctx:null,buffer:null,loading:null,unlocked:false};
+let incomingMessageAudio=null;
 function getIncomingMessageAudio(){
-  if(!messageSound.audio){
-    const audio=new Audio(MESSAGE_SOUND_URL);
-    audio.preload='auto';
-    audio.playsInline=true;
-    audio.volume=.9;
-    // Preserve audio context across page transitions
-    audio.addEventListener('canplaythrough',()=>{
-      if(!messageSound.ctx){try{messageSound.ctx=new(window.AudioContext||window.webkitAudioContext)()}catch{}}
-    },{once:true});
-    messageSound.audio=audio;
+  if(!incomingMessageAudio){
+    incomingMessageAudio=new Audio(MESSAGE_SOUND_URL);
+    incomingMessageAudio.preload='auto';
+    incomingMessageAudio.volume=.78;
   }
-  return messageSound.audio;
-}
-async function prepareMessageSound(){
-  const audio=getIncomingMessageAudio();
-  try{audio.load()}catch{}
-  try{
-    const AudioCtx=window.AudioContext||window.webkitAudioContext;
-    if(AudioCtx&&!messageSound.ctx)messageSound.ctx=new AudioCtx();
-    if(messageSound.ctx?.state==='suspended')await messageSound.ctx.resume();
-    if(messageSound.ctx&&!messageSound.buffer&&!messageSound.loading){
-      messageSound.loading=fetch(MESSAGE_SOUND_URL,{cache:'force-cache'})
-        .then(r=>{if(!r.ok)throw new Error('sound fetch');return r.arrayBuffer()})
-        .then(b=>messageSound.ctx.decodeAudioData(b))
-        .then(b=>{messageSound.buffer=b;return b})
-        .catch(()=>null)
-        .finally(()=>{messageSound.loading=null});
-    }
-  }catch{}
-}
-async function unlockMessageSound(){
-  if(messageSound.unlocked)return;
-  await prepareMessageSound();
-  const audio=getIncomingMessageAudio();
-  try{
-    const oldMuted=audio.muted,oldVolume=audio.volume;
-    audio.muted=true;audio.volume=0;audio.currentTime=0;
-    await audio.play();
-    audio.pause();audio.currentTime=0;audio.muted=oldMuted;audio.volume=oldVolume;
-    messageSound.unlocked=true;
-  }catch{
-    messageSound.unlocked=messageSound.ctx?.state==='running';
-  }
+  return incomingMessageAudio;
 }
 function playIncomingMessageSound(){
-  try{
-    if(messageSound.ctx?.state==='running'&&messageSound.buffer){
-      const source=messageSound.ctx.createBufferSource();
-      const gain=messageSound.ctx.createGain();
-      gain.gain.value=.9;
-      source.buffer=messageSound.buffer;
-      source.connect(gain).connect(messageSound.ctx.destination);
-      source.start(0);
-      return;
-    }
-    const audio=getIncomingMessageAudio();
-    audio.currentTime=0;
-    const result=audio.play();
-    result?.catch?.(()=>prepareMessageSound());
-  }catch{}
+  try{const a=getIncomingMessageAudio();a.currentTime=0;const r=a.play();r?.catch?.(()=>{})}catch{}
 }
-if(typeof window!=='undefined'){
-  const unlock=()=>unlockMessageSound();
-  window.addEventListener('pointerdown',unlock,{capture:true});
-  window.addEventListener('touchend',unlock,{capture:true});
-  window.addEventListener('keydown',unlock,{capture:true});
-  window.addEventListener('focus',prepareMessageSound);
-  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')prepareMessageSound()});
-}
+if(typeof window!=='undefined')window.addEventListener('pointerdown',()=>{try{getIncomingMessageAudio().load()}catch{}},{once:true,capture:true});
 const isFreshCall=c=>{if(!c||c.ended)return false;const created=Date.parse(c.created_at||'');if(!Number.isFinite(created))return true;const unanswered=(c.participants||[]).length<=1;return !unanswered||Date.now()-created<CALL_INVITE_TTL_MS};
 async function closeCallNotifications(){try{const reg=await navigator.serviceWorker?.getRegistration();const notes=await reg?.getNotifications?.();for(const n of notes||[])if(n.data?.kind==='call'||String(n.tag||'').startsWith('call-'))n.close()}catch{}}
 const api=async(path,opt={})=>{const t=localStorage.token;const headers={...(opt.body instanceof FormData?{}:{'Content-Type':'application/json'}),...(t?{Authorization:'Bearer '+t}:{}),...(opt.headers||{})};const configured=String(API||'').replace(/\/$/,'');const sameOrigin=path.startsWith('/')?path:`/${path}`;const primary=configured?configured+sameOrigin:sameOrigin;const candidates=[primary];if(configured&&primary!==sameOrigin)candidates.push(sameOrigin);let lastError=null;for(const url of candidates){try{const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),15000);const r=await fetch(url,{...opt,headers,signal:opt.signal||controller.signal,credentials:'same-origin'});clearTimeout(timer);if(!r.ok){let e={detail:r.statusText};try{e=await r.json()}catch{}throw new Error(typeof e.detail==='string'?e.detail:JSON.stringify(e.detail))}if(r.status===204)return null;return await r.json()}catch(e){lastError=e;if(e?.name==='AbortError')lastError=new Error('Сервер не ответил. Проверьте соединение.');if(url===sameOrigin||!configured)break}}throw new Error(lastError?.message==='Failed to fetch'?'Не удалось связаться с сервером. Проверьте сеть и повторите.':lastError?.message||'Ошибка сети')};
 const isStandalone=()=>window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;
-const detectPlatform=()=>{const ua=navigator.userAgent||'';const touchPoints=navigator.maxTouchPoints||0;const android=/Android/i.test(ua);const ios=/iPhone|iPad|iPod/i.test(ua)||(/Macintosh/i.test(ua)&&touchPoints>1);return{android,ios,touchPoints}};
-const chooseUiMode=()=>{const qs=new URLSearchParams(location.search).get('ui');if(qs==='touch'||qs==='desktop'){localStorage.uiMode=qs;return qs}if(localStorage.uiMode==='touch'||localStorage.uiMode==='desktop')return localStorage.uiMode;const p=detectPlatform();const coarse=window.matchMedia?.('(pointer: coarse)').matches||false;const noHover=window.matchMedia?.('(hover: none)').matches||false;const touchCapable=('ontouchstart' in window)||p.touchPoints>0||coarse||noHover;return(p.android||p.ios||touchCapable)?'touch':'desktop'};
-const detectDevice=(forcedMode=chooseUiMode())=>{const p=detectPlatform();const w=window.innerWidth,h=window.innerHeight;const shortSide=Math.min(w,h,screen?.width||w,screen?.height||h);const touchUi=forcedMode==='touch';const type=touchUi?(shortSide<700?'phone':'tablet'):'desktop';return{type,touch:touchUi,width:w,height:h,orientation:w>h?'landscape':'portrait',standalone:isStandalone(),ios:p.ios,android:p.android}};
-const MOSCOW_TZ='Europe/Moscow'; const storagePercentLabel=value=>{const n=Number(value)||0;return n<10?n.toFixed(2):n.toFixed(1)};
+const detectDevice=()=>{const ua=navigator.userAgent||'';const touch=navigator.maxTouchPoints||0;const w=window.innerWidth,h=window.innerHeight;let type='desktop';if(/iPhone|Android.+Mobile/i.test(ua)||(touch>1&&Math.min(w,h)<600))type='phone';else if(/iPad|Tablet/i.test(ua)||(touch>1&&Math.min(w,h)>=600))type='tablet';const android=/Android/i.test(ua);const ios=/iPhone|iPad|iPod/i.test(ua)||(/Macintosh/i.test(ua)&&touch>1);return{type,width:w,height:h,orientation:w>h?'landscape':'portrait',standalone:isStandalone(),ios,android,platform:android?'android':ios?'ios':'desktop'}};
+const MOSCOW_TZ='Europe/Moscow';
 const moscowTime=value=>value?new Date(value).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit',timeZone:MOSCOW_TZ}):'';
 const moscowParts=value=>Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:MOSCOW_TZ,year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date(value)).filter(x=>x.type!=='literal').map(x=>[x.type,x.value]));
 const lastSeenText=u=>{if(!u)return'';if(u.online)return'в сети';if(!u.last_seen)return'не в сети';const now=moscowParts(Date.now()),seen=moscowParts(u.last_seen),dayNow=Date.UTC(+now.year,+now.month-1,+now.day),daySeen=Date.UTC(+seen.year,+seen.month-1,+seen.day),days=Math.round((dayNow-daySeen)/86400000),time=moscowTime(u.last_seen);if(days===0)return`был(а) сегодня в ${time}`;if(days===1)return`был(а) вчера в ${time}`;return`был(а) ${new Date(u.last_seen).toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:seen.year===now.year?undefined:'numeric',timeZone:MOSCOW_TZ})} в ${time}`};
 const b64ToArray=s=>{const p='='.repeat((4-s.length%4)%4),b=atob((s+p).replace(/-/g,'+').replace(/_/g,'/'));return Uint8Array.from([...b].map(c=>c.charCodeAt(0)))};
-const Icon=({name,size=20})=>{const paths={phone:<>
-<path d="M7.2 3.5 9 7.8 6.8 9.4a15.5 15.5 0 0 0 7.8 7.8L16.2 15l4.3 1.8v3.1c0 .9-.7 1.6-1.6 1.6C9.8 21.5 2.5 14.2 2.5 5.1c0-.9.7-1.6 1.6-1.6h3.1Z"/>
-</>,video:<>
-<rect x="3" y="6" width="13" height="12" rx="3"/>
-<path d="m16 10 5-3v10l-5-3Z"/>
-</>,send:<>
-<path d="m3 3 18 9-18 9 4-9-4-9Z"/>
-<path d="M7 12h14"/>
-</>,switch:<>
-<path d="M7 7h10l-2.5-2.5M17 17H7l2.5 2.5"/>
-<path d="M17 7l-2.5 2.5M7 17l2.5-2.5"/>
-</>,mic:<>
-<rect x="9" y="3" width="6" height="11" rx="3"/>
-<path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>
-</>,camera:<>
-<rect x="3" y="6" width="18" height="13" rx="3"/>
-<circle cx="12" cy="12.5" r="3.5"/>
-<path d="m8 6 1.2-2h5.6L16 6"/>
-</>,hangup:<>
-<path d="M5 15c4.5-4 9.5-4 14 0"/>
-<path d="m5 15-2 3M19 15l2 3"/>
-</>,bell:<>
-<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/>
-<path d="M10 21h4"/>
-</>,info:<>
-<circle cx="12" cy="12" r="9"/>
-<path d="M12 11v6M12 7h.01"/>
-</>,cloud:<>
-<path d="M17.5 19H7a5 5 0 0 1-.8-9.94A7 7 0 0 1 19.7 11.5 3.8 3.8 0 0 1 17.5 19Z"/>
-</>,star:<>
-<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9L12 3Z"/>
-</>,folder:<>
-<path d="M3 6.5h6l2 2h10v10.5H3Z"/>
-</>,settings:<>
-<circle cx="12" cy="12" r="3"/>
-<path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.12 2.12-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.55V20.3h-3v-.09a1.7 1.7 0 0 0-1.03-1.55 1.7 1.7 0 0 0-1.88.34l-.06.06-2.12-2.12.06-.06A1.7 1.7 0 0 0 7 15a1.7 1.7 0 0 0-1.55-1.03H5.3v-3h.15A1.7 1.7 0 0 0 7 9.94a1.7 1.7 0 0 0-.34-1.88L6.6 8l2.12-2.12.06.06a1.7 1.7 0 0 0 1.88.34A1.7 1.7 0 0 0 11.7 4.7V4.6h3v.1a1.7 1.7 0 0 0 1.03 1.55 1.7 1.7 0 0 0 1.88-.34l.06-.06L19.8 8l-.06.06a1.7 1.7 0 0 0-.34 1.88 1.7 1.7 0 0 0 1.55 1.03h.15v3h-.15A1.7 1.7 0 0 0 19.4 15Z"/>
-</>,logout:<>
-<path d="M10 17l5-5-5-5M15 12H3"/>
-<path d="M14 4h6v16h-6"/>
-</>,message:<>
-<path d="M4 5h16v11H8l-4 4Z"/>
-</>,link:<>
-<path d="M10 13a5 5 0 0 0 7.5.5l2-2a5 5 0 0 0-7-7l-1 1"/>
-<path d="M14 11a5 5 0 0 0-7.5-.5l-2 2a5 5 0 0 0 7 7l1-1"/>
-</>,paperclip:<path d="m9 12 6-6a3 3 0 0 1 4 4l-8 8a5 5 0 0 1-7-7l8-8"/>,more:<>
-<circle cx="5" cy="12" r="1"/>
-<circle cx="12" cy="12" r="1"/>
-<circle cx="19" cy="12" r="1"/>
-</>,image:<>
-<rect x="3" y="4" width="18" height="16" rx="2"/>
-<circle cx="9" cy="9" r="2"/>
-<path d="m21 15-5-5L5 20"/>
-</>,file:<>
-<path d="M6 3h8l4 4v14H6Z"/>
-<path d="M14 3v5h5"/>
-</>,search:<>
-<circle cx="11" cy="11" r="7"/>
-<path d="m20 20-4-4"/>
-</>,apps:<>
-<rect x="3" y="3" width="7" height="7" rx="2"/>
-<rect x="14" y="3" width="7" height="7" rx="2"/>
-<rect x="3" y="14" width="7" height="7" rx="2"/>
-<rect x="14" y="14" width="7" height="7" rx="2"/>
-</>,dockChat:<>
-<path d="M4 5.5h16v11H9l-5 3.5V5.5Z"/>
-<circle cx="8.5" cy="11" r=".7" fill="currentColor" stroke="none"/>
-<circle cx="12" cy="11" r=".7" fill="currentColor" stroke="none"/>
-<circle cx="15.5" cy="11" r=".7" fill="currentColor" stroke="none"/>
-</>,dockDisk:<>
-<path d="M17.8 18.5H7.2a4.7 4.7 0 0 1-.7-9.35A6.4 6.4 0 0 1 18.8 11a3.8 3.8 0 0 1-1 7.5Z"/>
-<path d="M12 11.5v5M9.8 13.8 12 16l2.2-2.2"/>
-</>,dockApps:<>
-<rect x="3.5" y="3.5" width="6.5" height="6.5" rx="2.1"/>
-<rect x="14" y="3.5" width="6.5" height="6.5" rx="2.1"/>
-<rect x="3.5" y="14" width="6.5" height="6.5" rx="2.1"/>
-<rect x="14" y="14" width="6.5" height="6.5" rx="2.1"/>
-</>,dockStar:<>
-<path d="m12 3.2 2.65 5.38 5.94.86-4.3 4.2 1.02 5.91L12 16.75l-5.31 2.8 1.02-5.91-4.3-4.2 5.94-.86L12 3.2Z"/>
-</>,dockProfile:<>
-<circle cx="12" cy="8" r="3.2"/>
-<path d="M5.5 20c.7-4 3-6 6.5-6s5.8 2 6.5 6"/>
-</>};return <svg className={'icon '+(String(name).startsWith('dock')?'dock-icon':'')} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={String(name).startsWith('dock')?2.05:1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name]}</svg>};
+const Icon=({name,size=20})=>{const paths={phone:<><path d="M7.2 3.5 9 7.8 6.8 9.4a15.5 15.5 0 0 0 7.8 7.8L16.2 15l4.3 1.8v3.1c0 .9-.7 1.6-1.6 1.6C9.8 21.5 2.5 14.2 2.5 5.1c0-.9.7-1.6 1.6-1.6h3.1Z"/></>,video:<><rect x="3" y="6" width="13" height="12" rx="3"/><path d="m16 10 5-3v10l-5-3Z"/></>,send:<><path d="m3 3 18 9-18 9 4-9-4-9Z"/><path d="M7 12h14"/></>,switch:<><path d="M7 7h10l-2.5-2.5M17 17H7l2.5 2.5"/><path d="M17 7l-2.5 2.5M7 17l2.5-2.5"/></>,mic:<><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></>,camera:<><rect x="3" y="6" width="18" height="13" rx="3"/><circle cx="12" cy="12.5" r="3.5"/><path d="m8 6 1.2-2h5.6L16 6"/></>,hangup:<><path d="M5 15c4.5-4 9.5-4 14 0"/><path d="m5 15-2 3M19 15l2 3"/></>,bell:<><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></>,info:<><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/></>,cloud:<><path d="M17.5 19H7a5 5 0 0 1-.8-9.94A7 7 0 0 1 19.7 11.5 3.8 3.8 0 0 1 17.5 19Z"/></>,star:<><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9L12 3Z"/></>,folder:<><path d="M3 6.5h6l2 2h10v10.5H3Z"/></>,settings:<><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.12 2.12-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.55V20.3h-3v-.09a1.7 1.7 0 0 0-1.03-1.55 1.7 1.7 0 0 0-1.88.34l-.06.06-2.12-2.12.06-.06A1.7 1.7 0 0 0 7 15a1.7 1.7 0 0 0-1.55-1.03H5.3v-3h.15A1.7 1.7 0 0 0 7 9.94a1.7 1.7 0 0 0-.34-1.88L6.6 8l2.12-2.12.06.06a1.7 1.7 0 0 0 1.88.34A1.7 1.7 0 0 0 11.7 4.7V4.6h3v.1a1.7 1.7 0 0 0 1.03 1.55 1.7 1.7 0 0 0 1.88-.34l.06-.06L19.8 8l-.06.06a1.7 1.7 0 0 0-.34 1.88 1.7 1.7 0 0 0 1.55 1.03h.15v3h-.15A1.7 1.7 0 0 0 19.4 15Z"/></>,logout:<><path d="M10 17l5-5-5-5M15 12H3"/><path d="M14 4h6v16h-6"/></>,message:<><path d="M4 5h16v11H8l-4 4Z"/></>,link:<><path d="M10 13a5 5 0 0 0 7.5.5l2-2a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7.5-.5l-2 2a5 5 0 0 0 7 7l1-1"/></>,paperclip:<path d="m9 12 6-6a3 3 0 0 1 4 4l-8 8a5 5 0 0 1-7-7l8-8"/>,more:<><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></>,image:<><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 20"/></>,file:<><path d="M6 3h8l4 4v14H6Z"/><path d="M14 3v5h5"/></>,search:<><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></>,apps:<><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></>,dockChat:<><path d="M4 5.5h16v11H9l-5 3.5V5.5Z"/><circle cx="8.5" cy="11" r=".7" fill="currentColor" stroke="none"/><circle cx="12" cy="11" r=".7" fill="currentColor" stroke="none"/><circle cx="15.5" cy="11" r=".7" fill="currentColor" stroke="none"/></>,dockDisk:<><path d="M17.8 18.5H7.2a4.7 4.7 0 0 1-.7-9.35A6.4 6.4 0 0 1 18.8 11a3.8 3.8 0 0 1-1 7.5Z"/><path d="M12 11.5v5M9.8 13.8 12 16l2.2-2.2"/></>,dockApps:<><rect x="3.5" y="3.5" width="6.5" height="6.5" rx="2.1"/><rect x="14" y="3.5" width="6.5" height="6.5" rx="2.1"/><rect x="3.5" y="14" width="6.5" height="6.5" rx="2.1"/><rect x="14" y="14" width="6.5" height="6.5" rx="2.1"/></>,dockStar:<><path d="m12 3.2 2.65 5.38 5.94.86-4.3 4.2 1.02 5.91L12 16.75l-5.31 2.8 1.02-5.91-4.3-4.2 5.94-.86L12 3.2Z"/></>,dockProfile:<><circle cx="12" cy="8" r="3.2"/><path d="M5.5 20c.7-4 3-6 6.5-6s5.8 2 6.5 6"/></>};return <svg className={'icon '+(String(name).startsWith('dock')?'dock-icon':'')} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={String(name).startsWith('dock')?2.05:1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name]}</svg>};
 const Avatar=({user,name,className='chat-avatar'})=>{const label=(user?.display_name||user?.username||name||'?').trim();return <span className={className+(user?.avatar_url?' has-photo':'')}>{user?.avatar_url?<img src={user.avatar_url} alt=""/>:label[0]?.toUpperCase()}</span>};
 const MessageTicks=({status})=><span className={'message-ticks '+(status==='read'?'read':'')} aria-label={status==='read'?'Прочитано':status==='delivered'?'Доставлено':'Отправлено'}>{status==='sent'?<span>✓</span>:<><span>✓</span><span>✓</span></>}</span>;
 const LinkifiedText=({text=''})=>{const parts=String(text).split(/((?:https?:\/\/|\/share\/)[^\s]+)/gi);return <>{parts.map((part,i)=>{if(!/^(?:https?:\/\/|\/share\/)/i.test(part))return <React.Fragment key={i}>{part}</React.Fragment>;const href=part.startsWith('/share/')?`${location.origin}${part}`:part;return <a key={i} className="message-link" href={href} target="_blank" rel="noreferrer">{part}</a>})}</>};
@@ -179,9 +38,9 @@ const LinkifiedText=({text=''})=>{const parts=String(text).split(/((?:https?:\/\
 
 function Auth({done}){const[mode,setMode]=useState('login'),[username,setU]=useState(''),[password,setP]=useState(''),[err,setE]=useState(''),[busy,setBusy]=useState(false);async function go(e){e.preventDefault();setBusy(true);setE('');try{const x=await api('/api/'+mode,{method:'POST',body:JSON.stringify({username,password})});localStorage.token=x.token;done(x.user)}catch(e){setE(e.message)}finally{setBusy(false)}}return <div className="auth-shell"><form className="auth-card" onSubmit={go}><div className="brand-mark">M</div><h1>Messenger</h1><p>Личное пространство для общения</p><input autoCapitalize="none" autoCorrect="off" placeholder="Логин" value={username} onChange={e=>setU(e.target.value)}/><input type="password" placeholder="Пароль" value={password} onChange={e=>setP(e.target.value)}/>{err&&<div className="error">{err}</div>}<button disabled={busy}>{busy?'Подождите…':mode==='login'?'Войти':'Зарегистрироваться'}</button><button type="button" className="link-button" onClick={()=>{setMode(mode==='login'?'register':'login');setE('')}}>{mode==='login'?'Нет аккаунта? Регистрация':'Уже есть аккаунт? Войти'}</button></form></div>}
 
-function CallLayer({user,ws,chat,invite,setInvite,onCallActive,clearRequestedCall}){
+function CallLayer({user,ws,chat,invite,setInvite,clearRequestedCall}){
 const[call,setCall]=useState(null),[status,setStatus]=useState(''),[muted,setMuted]=useState(false),[cameraOff,setCameraOff]=useState(false);
-useEffect(()=>{const active=!!(call||invite);document.documentElement.dataset.callActive=active?'true':'false';onCallActive?.(active);return()=>{document.documentElement.dataset.callActive='false';onCallActive?.(false)}},[call,invite]);
+useEffect(()=>{document.documentElement.dataset.callActive=(call||invite)?'true':'false';return()=>{document.documentElement.dataset.callActive='false'}},[call,invite]);
 const localVideo=useRef(),remoteGrid=useRef(),streamRef=useRef(),peers=useRef(new Map()),remoteStreams=useRef(new Map()),iceRef=useRef([]),callRef=useRef(null),pendingIce=useRef(new Map()),endingRef=useRef(false),toneRef=useRef({ctx:null,timer:null,nodes:[]}),sessionRef=useRef(0),facingRef=useRef('user');
 
 function setCurrentCall(value){callRef.current=value;setCall(value)}
@@ -461,7 +320,7 @@ function MobileDisk({onBack}){
  const[items,setItems]=useState([]),[parent,setParent]=useState(savedDisk.parent??null),[path,setPath]=useState(Array.isArray(savedDisk.path)?savedDisk.path:[]),[busy,setBusy]=useState(true),[error,setError]=useState(''),[usage,setUsage]=useState({used:0,quota:10*1024*1024*1024,percent:0});
  const[preview,setPreview]=useState(null),[previewUrl,setPreviewUrl]=useState(''),[previewMime,setPreviewMime]=useState(''),[previewBusy,setPreviewBusy]=useState(false),[previewError,setPreviewError]=useState('');
  const uploadRef=useRef(),listRef=useRef(),savedScrollRef=useRef(Number(savedDisk.scroll)||0);
- const load=async(id=null)=>{setBusy(true);setError('');try{const r=await api(`/api/storage${id!==null?`?parent_id=${id}`:''}`);setItems(r.items||[]);{const used=Number(r.used_bytes)||0,quota=Number(r.quota_bytes)||10*1024*1024*1024;setUsage({used,quota,percent:quota>0?(used/quota)*100:0})}}catch(e){setError(e.message||'Не удалось загрузить диск')}finally{setBusy(false)}};
+ const load=async(id=null)=>{setBusy(true);setError('');try{const r=await api(`/api/storage${id!==null?`?parent_id=${id}`:''}`);setItems(r.items||[]);setUsage({used:Number(r.used_bytes)||0,quota:Number(r.quota_bytes)||10*1024*1024*1024,percent:Number(r.usage_percent)||0})}catch(e){setError(e.message||'Не удалось загрузить диск')}finally{setBusy(false)}};
  useEffect(()=>{load(null)},[]);
  useEffect(()=>()=>{if(previewUrl)URL.revokeObjectURL(previewUrl)},[previewUrl]);
  useEffect(()=>{sessionStorage.setItem('workspace.mobileDisk',JSON.stringify({parent,path,scroll:listRef.current?.scrollTop||savedScrollRef.current||0}))},[parent,path,items]);
@@ -477,7 +336,7 @@ function MobileDisk({onBack}){
  const size=n=>!n?'0 Б':n<1048576?`${Math.max(1,Math.round(n/1024))} КБ`:n<1073741824?`${(n/1048576).toFixed(1)} МБ`:`${(n/1073741824).toFixed(1)} ГБ`;
  return <section className="mobile-disk-screen">
    <header className="mobile-disk-header"><div><small>{path.length?'Мой диск / '+path.map(x=>x.name).join(' / '):'Igorson Workspace'}</small><h1>{path.length?path[path.length-1].name:'Диск'}</h1></div><div className="mobile-disk-actions"><button onClick={createFolder} aria-label="Новая папка"><Icon name="folder" size={21}/></button><button onClick={()=>uploadRef.current?.click()} aria-label="Загрузить"><span style={{fontSize:28,lineHeight:1}}>＋</span></button></div><input ref={uploadRef} hidden type="file" multiple onChange={e=>upload(e.target.files)}/></header>
-   <div className="mobile-disk-usage"><div className="mobile-disk-usage-line"><b>{storagePercentLabel(usage.percent)}%</b><span>{size(usage.used)} из {size(usage.quota)}</span></div><div className="mobile-disk-usage-track"><i style={{width:`${Math.min(100,Math.max(0,usage.percent))}%`}}/></div></div>
+   <div className="mobile-disk-usage"><div className="mobile-disk-usage-line"><b>{Math.round(usage.percent)}%</b><span>{size(usage.used)} из {size(usage.quota)}</span></div><div className="mobile-disk-usage-track"><i style={{width:`${Math.min(100,Math.max(0,usage.percent))}%`}}/></div></div>
    {path.length>0&&<button className="mobile-disk-back" onClick={up}>‹ Назад</button>}
    <div className="mobile-disk-list" ref={listRef} onScroll={rememberScroll}>
      {busy&&<div className="mobile-disk-state">Загрузка…</div>}
@@ -489,21 +348,81 @@ function MobileDisk({onBack}){
  </section>
 }
 
-function WorkspacePanel({section,user,onOpenApp,onEditApp,onBack}){
+function ChecklistCard({checklist,focused=false,onBack}){
+ const[list,setList]=useState(checklist),[draft,setDraft]=useState(''),[busy,setBusy]=useState(false),[editingId,setEditingId]=useState(null),[editingText,setEditingText]=useState('');
+ useEffect(()=>setList(checklist),[checklist]);
+ if(!list)return null;
+ const done=list.items.filter(x=>x.checked).length,total=list.items.length;
+ const updateItem=async(item,patch)=>{setBusy(true);try{const r=await api(`/api/checklists/${list.id}/items/${item.id}`,{method:'PATCH',body:JSON.stringify(patch)});setList(r)}catch(e){alert(e.message)}finally{setBusy(false)}};
+ const add=async()=>{const value=draft.trim();if(!value)return;setBusy(true);try{const r=await api(`/api/checklists/${list.id}/items`,{method:'POST',body:JSON.stringify({text:value})});setList(r);setDraft('')}catch(e){alert(e.message)}finally{setBusy(false)}};
+ const remove=async item=>{if(!confirm(`Удалить пункт «${item.text}»?`))return;setBusy(true);try{const r=await api(`/api/checklists/${list.id}/items/${item.id}`,{method:'DELETE'});setList(r)}catch(e){alert(e.message)}finally{setBusy(false)}};
+ const beginEdit=item=>{setEditingId(item.id);setEditingText(item.text)};
+ const finishEdit=async item=>{const value=editingText.trim();setEditingId(null);if(value&&value!==item.text)await updateItem(item,{text:value})};
+ const rename=async()=>{const value=prompt('Название списка',list.title);if(!value?.trim()||value.trim()===list.title)return;setBusy(true);try{const r=await api(`/api/checklists/${list.id}`,{method:'PATCH',body:JSON.stringify({title:value.trim()})});setList(r)}catch(e){alert(e.message)}finally{setBusy(false)}};
+ return <section className={'notes-checklist '+(focused?'focused':'')}>
+   <header className="notes-checklist-header">
+     <div className="notes-checklist-title-row">{focused&&<button className="notes-back" onClick={onBack} aria-label="Назад">‹</button>}<button className="notes-title" onClick={rename}>{list.title}</button><span>{done}/{total}</span></div>
+   </header>
+   <div className="notes-items">
+     {list.items.map(item=><div className={'notes-item '+(item.checked?'done':'')} key={item.id}>
+       <button disabled={busy} className="notes-check" onClick={()=>updateItem(item,{checked:!item.checked})} aria-label={item.checked?'Снять отметку':'Отметить'}>{item.checked?'✓':''}</button>
+       {editingId===item.id?<input className="notes-item-edit" autoFocus value={editingText} onChange={e=>setEditingText(e.target.value)} onBlur={()=>finishEdit(item)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();e.currentTarget.blur()}if(e.key==='Escape'){setEditingId(null)}}}/>:<button className="notes-item-text" onClick={()=>beginEdit(item)}>{item.text}</button>}
+       <button className="notes-remove" onClick={()=>remove(item)} aria-label="Удалить">×</button>
+     </div>)}
+     <div className="notes-item notes-new-item">
+       <span className="notes-check empty"/>
+       <input value={draft} onChange={e=>setDraft(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();add()}}} placeholder="Новый пункт"/>
+       <button disabled={busy||!draft.trim()} onClick={add} aria-label="Добавить">＋</button>
+     </div>
+   </div>
+ </section>
+}
+
+function ChecklistCreateModal({chats,initialChatId,close,created}){
+ const[chatId,setChatId]=useState(initialChatId||chats[0]?.id||''),[title,setTitle]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState('');
+ const save=async()=>{if(!chatId||!title.trim())return;setBusy(true);setError('');try{const row=await api(`/api/chats/${chatId}/checklists`,{method:'POST',body:JSON.stringify({title:title.trim(),items:[]})});created?.(row,Number(chatId));close()}catch(e){setError(e.message)}finally{setBusy(false)}};
+ return <div className="modal" onPointerDown={close}><div className="modal-card checklist-create-modal notes-create-modal" onPointerDown={e=>e.stopPropagation()}><div className="modal-head"><h3>Новый список</h3><button onClick={close}>×</button></div>{chats.length>1&&<label>Чат<select value={chatId} onChange={e=>setChatId(e.target.value)}>{chats.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></label>}<label>Название<input autoFocus value={title} onChange={e=>setTitle(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();save()}}} placeholder="Название списка"/></label>{error&&<div className="error">{error}</div>}<div className="modal-actions"><button className="secondary" onClick={close}>Отмена</button><button className="primary" disabled={busy||!chatId||!title.trim()} onClick={save}>{busy?'Создаём…':'Создать'}</button></div></div></div>
+}
+
+function StandaloneChecklistCreateModal({close,created}){
+ const[title,setTitle]=useState(''),[users,setUsers]=useState([]),[selected,setSelected]=useState([]),[query,setQuery]=useState(''),[busy,setBusy]=useState(false),[loading,setLoading]=useState(true),[error,setError]=useState('');
+ useEffect(()=>{let alive=true;api('/api/users').then(rows=>{if(alive)setUsers(rows||[])}).catch(e=>{if(alive)setError(e.message)}).finally(()=>{if(alive)setLoading(false)});return()=>{alive=false}},[]);
+ const visible=users.filter(u=>`${u.display_name||''} ${u.username||''}`.toLowerCase().includes(query.trim().toLowerCase()));
+ const toggle=id=>setSelected(xs=>xs.includes(id)?xs.filter(x=>x!==id):[...xs,id]);
+ const save=async()=>{if(!title.trim())return;setBusy(true);setError('');try{const row=await api('/api/checklists',{method:'POST',body:JSON.stringify({title:title.trim(),member_ids:selected,items:[]})});created?.(row);close()}catch(e){setError(e.message)}finally{setBusy(false)}};
+ return <div className="modal" onPointerDown={close}><div className="modal-card standalone-list-create" onPointerDown={e=>e.stopPropagation()}><div className="modal-head"><h3>Новый список</h3><button onClick={close}>×</button></div><label className="field-label">Название<input autoFocus value={title} onChange={e=>setTitle(e.target.value)} placeholder="Например, Покупки" maxLength="160"/></label><div className="collaborators-head"><b>Участники</b><small>Все выбранные смогут добавлять и отмечать пункты</small></div><input className="collaborator-search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Найти пользователя"/>{loading?<div className="collaborator-state">Загрузка…</div>:<div className="collaborator-list">{visible.map(u=><label className="collaborator-row" key={u.id}><input type="checkbox" checked={selected.includes(u.id)} onChange={()=>toggle(u.id)}/><Avatar user={u} className="collaborator-avatar"/><span><b>{u.display_name||u.username}</b><small>@{u.username}</small></span></label>)}{!visible.length&&<div className="collaborator-state">Пользователи не найдены</div>}</div>}{error&&<div className="error">{error}</div>}<div className="modal-actions"><button className="secondary" onClick={close}>Отмена</button><button className="primary" disabled={busy||!title.trim()} onClick={save}>{busy?'Создаём…':'Создать список'}</button></div></div></div>
+}
+
+function AppsWorkspace({user,onOpenApp,onEditApp,onBack}){
+ const[lists,setLists]=useState([]),[selectedId,setSelectedId]=useState(null),[showCreate,setShowCreate]=useState(false),[busy,setBusy]=useState(true);
+ const load=async(preferId=null)=>{setBusy(true);try{const rows=await api('/api/checklists');setLists(rows||[]);if(preferId)setSelectedId(preferId)}catch(e){alert(e.message)}finally{setBusy(false)}};
+ useEffect(()=>{load();const timer=setInterval(()=>api('/api/checklists').then(rows=>setLists(rows||[])).catch(()=>{}),5000);return()=>clearInterval(timer)},[]);
+ const source=Array.isArray(user.home_links)?user.home_links:[];
+ const apps=source.map((app,i)=>app&&app.url?{...app,_slot:i}:null).filter(Boolean);
+ const emptyIndex=source.findIndex(app=>!app||!app.url),addSlot=emptyIndex>=0?emptyIndex:source.length;
+ const selected=lists.find(x=>x.id===selectedId)||null;
+ return <section className="desktop-workspace-panel apps-workspace apps-workspace-v2"><div className="apps-main-pane"><header className="workspace-header apps-main-header"><div><small>Igorson Workspace</small><h1>{selected?selected.title:'Приложения'}</h1></div>{selected&&<button className="workspace-back" onClick={()=>setSelectedId(null)}>К спискам</button>}</header>{selected?<div className="compact-list-stage"><ChecklistCard checklist={selected} focused/><button className="lists-messenger-return" onClick={onBack}>← Вернуться в мессенджер</button></div>:<div className="apps-content-scroll"><section className="apps-section"><h2>Рабочее пространство</h2><div className="apps-grid apps-grid-v2 workspace-object-grid">{apps.map(app=><button className="app-tile workspace-object-tile" key={`${app._slot}-${app.url}`} onClick={()=>onOpenApp({title:app.title||app.name||'Приложение',url:app.url})}><span>{(app.title||app.name||'A')[0].toUpperCase()}</span><div><b>{app.title||app.name}</b><small>{String(app.url||'').replace(/^https?:\/\//,'').replace(/\/$/,'')}</small></div><i>↗</i><em className="app-edit-inline" onClick={e=>{e.stopPropagation();onEditApp(app._slot)}}>⋯</em></button>)}{lists.map(row=>{const done=row.items.filter(x=>x.checked).length,total=row.items.length;return <button className="app-tile workspace-object-tile checklist-tile" key={`list-${row.id}`} onClick={()=>setSelectedId(row.id)}><span>✓</span><div><b>{row.title}</b><small>{total?`${done} из ${total}`:'Пустой список'}</small></div><i>›</i></button>})}{busy&&<div className="apps-empty-note">Загрузка…</div>}{!busy&&!apps.length&&!lists.length&&<div className="apps-empty-note">Добавьте приложение или список справа</div>}</div></section></div>}</div><aside className="apps-action-column"><button className="apps-action-button" onClick={()=>onEditApp(addSlot)}><span>＋</span><div><b>Добавить приложение</b><small>Сайт или веб-сервис</small></div></button><button className="apps-action-button" onClick={()=>setShowCreate(true)}><span>＋</span><div><b>Добавить список</b><small>Совместный чек-лист</small></div></button><div className="apps-action-separator"/><button className="apps-back-messenger" onClick={onBack}>Вернуться в мессенджер</button></aside>{showCreate&&<StandaloneChecklistCreateModal close={()=>setShowCreate(false)} created={row=>{setShowCreate(false);setLists(xs=>[row,...xs.filter(x=>x.id!==row.id)]);setSelectedId(row.id)}}/>}</section>
+}
+
+function ListsWorkspace({chats,onBack}){
+ const[lists,setLists]=useState([]),[showCreate,setShowCreate]=useState(false),[busy,setBusy]=useState(true),[selectedId,setSelectedId]=useState(null);
+ const load=async(preferId=null)=>{setBusy(true);try{const rows=await api('/api/checklists');setLists(rows);setSelectedId(current=>preferId||current||(rows[0]?.id??null))}catch(e){alert(e.message)}finally{setBusy(false)}};
+ useEffect(()=>{load();const timer=setInterval(async()=>{try{const rows=await api('/api/checklists');setLists(rows)}catch{}},4000);return()=>clearInterval(timer)},[]);
+ const selected=lists.find(x=>x.id===selectedId)||null;
+ if(selected)return <section className="lists-workspace list-open"><ChecklistCard checklist={selected} focused onBack={()=>setSelectedId(null)}/><button className="workspace-back lists-return" onClick={onBack}>Вернуться к приложениям</button></section>;
+ return <section className="lists-workspace"><header className="workspace-header"><div><small>Igorson Workspace</small><h1>Списки</h1></div><div className="workspace-head-actions"><button className="primary" onClick={()=>setShowCreate(true)}>＋ Добавить список</button><button className="workspace-back" onClick={onBack}>Вернуться к приложениям</button></div></header>{busy?<div className="workspace-empty">Загрузка…</div>:!lists.length?<div className="workspace-empty"><h2>Списков пока нет</h2><p>Создайте список. После создания он сразу откроется, а участники чата смогут отмечать пункты.</p></div>:<div className="notes-list-index">{lists.map(row=><button className="notes-list-row" key={row.id} onClick={()=>setSelectedId(row.id)}><div><b>{row.title}</b><small>{row.chat?.name||'Чат'}</small></div><span>{row.items.filter(x=>x.checked).length}/{row.items.length}</span><i>›</i></button>)}</div>}{showCreate&&<ChecklistCreateModal chats={chats} close={()=>setShowCreate(false)} created={row=>{setShowCreate(false);load(row.id)}}/>}</section>
+}
+
+function WorkspacePanel({section,user,chats,onOpenApp,onEditApp,onBack}){
   if(section==='cloud')return window.matchMedia('(max-width:900px), (hover:none) and (pointer:coarse)').matches?<MobileDisk onBack={onBack}/>:<CloudWorkspace onBack={onBack}/>;
-  if(section==='apps'){
-    const source=Array.isArray(user.home_links)?user.home_links:[];
-    const saved=source.map((app,i)=>app&&app.url?{...app,_slot:i}:null).filter(Boolean);
-    const apps=[...saved];
-    return <section className="desktop-workspace-panel apps-workspace"><header className="workspace-header"><div><small>Igorson Workspace</small><h1>Приложения</h1></div><button className="workspace-back" onClick={onBack}>Вернуться к чатам</button></header><div className="apps-grid">{apps.map((app,i)=>app?<button className="app-tile" key={`${app._slot}-${app.url}`} onClick={()=>onOpenApp({title:app.title||app.name||'Приложение',url:app.url})}><span>{(app.title||app.name||'A')[0].toUpperCase()}</span><div><b>{app.title||app.name}</b><small>{String(app.url||'').replace(/^https?:\/\//,'').replace(/\/$/,'')}</small></div><i>↗</i></button>:<button className="app-tile empty-app" key="add-app" onClick={()=>onEditApp(source.length)}><span>＋</span><div><b>Добавить приложение</b><small>Сайт или веб-сервис</small></div></button>)}</div></section>
-  }
+  if(section==='apps')return <AppsWorkspace user={user} onOpenApp={onOpenApp} onEditApp={onEditApp} onBack={onBack}/>;
   return <section className="desktop-workspace-panel apps-workspace"><header className="workspace-header"><div><small>Igorson Workspace</small><h1>Избранное</h1></div><button className="workspace-back" onClick={onBack}>Вернуться к чатам</button></header><div className="workspace-empty"><Icon name="star" size={34}/><h2>Здесь появятся избранные материалы</h2><p>Сообщения, файлы и ссылки, которые вы отметите позже.</p></div></section>
 }
 
 function CloudWorkspace({onBack}){
  const[items,setItems]=useState([]),[parent,setParent]=useState(null),[path,setPath]=useState([]),[busy,setBusy]=useState(false),[query,setQuery]=useState(''),[mode,setMode]=useState('files'),[layout,setLayout]=useState('list'),[menuOpen,setMenuOpen]=useState(false),[usage,setUsage]=useState({used:0,quota:10*1024*1024*1024,percent:0});
  const uploadRef=useRef(),listRef=useRef();
- const load=async(id=parent)=>{setBusy(true);try{const r=await api(`/api/storage${id?`?parent_id=${id}`:''}`);setItems(r.items||[]);{const used=Number(r.used_bytes)||0,quota=Number(r.quota_bytes)||10*1024*1024*1024;setUsage({used,quota,percent:quota>0?(used/quota)*100:0})}}catch(e){alert(e.message)}finally{setBusy(false)}};
+ const load=async(id=parent)=>{setBusy(true);try{const r=await api(`/api/storage${id?`?parent_id=${id}`:''}`);setItems(r.items||[]);setUsage({used:r.used_bytes||0,quota:r.quota_bytes||10*1024*1024*1024,percent:r.usage_percent||0})}catch(e){alert(e.message)}finally{setBusy(false)}};
  useEffect(()=>{load(null)},[]);
  const enter=async item=>{if(!item.is_folder)return;setMode('files');setPath(p=>[...p,{id:item.id,name:item.name}]);setParent(item.id);await load(item.id)};
  const goRoot=async()=>{setPath([]);setParent(null);setMode('files');await load(null)};
@@ -533,7 +452,7 @@ function CloudWorkspace({onBack}){
      <nav className="files-v2-nav">{nav.map(([id,label,icon])=><button key={id} className={mode===id?'active':''} onClick={()=>setMode(id)}><FIcon name={icon}/><span>{label}</span></button>)}</nav>
      <div className="files-v2-section-label">Библиотека</div>
      <nav className="files-v2-nav">{cats.map(([id,label,icon])=><button key={id} className={mode===id?'active':''} onClick={()=>{setMode(id);if(id==='files'&&!path.length)load(parent)}}><FIcon name={icon}/><span>{label}</span></button>)}</nav>
-     <div className="files-v2-usage"><div className="files-v2-usage-top"><b>{storagePercentLabel(usage.percent)}%</b><span>{size(usage.used)} из {size(usage.quota)}</span></div><div className="files-v2-progress"><i style={{width:`${Math.min(100,usage.percent)}%`}}/></div></div>
+     <div className="files-v2-usage"><div className="files-v2-usage-top"><b>{Math.round(usage.percent)}%</b><span>{size(usage.used)} из {size(usage.quota)}</span></div><div className="files-v2-progress"><i style={{width:`${Math.min(100,usage.percent)}%`}}/></div></div>
      <button className="files-v2-back" onClick={onBack}><FIcon name="back" size={19}/>К чатам</button>
    </aside>
    <main className="files-v2-main">
@@ -576,30 +495,30 @@ const CONTACT_CATEGORY_LABELS={family:'Семья',friends:'Друзья',work:'
 function ChatRowButton({c,chat,user,open}){const contact=c.is_group?null:c.members.find(m=>m.id!==user.id);return <button className={'chat-row '+(chat?.id===c.id?'active':'')} onClick={()=>open(c)}><span className="chat-avatar-wrap"><Avatar user={c.is_group?{display_name:c.name,avatar_url:c.avatar_url}:{...contact,display_name:c.name}} name={c.name}/>{!c.is_group&&contact?.online&&<i className="online-dot"/>}</span><span className="chat-copy"><span className="chat-title"><b>{c.name}</b><time>{c.last_message?moscowTime(c.last_message.created_at):''}</time></span><span className="preview-row"><span className="preview">{c.last_message?.text||c.last_message?.file_name||'Нет сообщений'}</span>{c.unread_count>0&&<span className="unread-badge" aria-label={`Непрочитанных: ${c.unread_count}`}>{c.unread_count>99?'99+':c.unread_count}</span>}</span></span></button>}
 function CategorizedChatList({chats,chat,user,open}){const groups={family:[],friends:[],work:[],other:[],groups:[]};for(const c of chats){if(c.is_group)groups.groups.push(c);else groups[c.contact_category||'other'].push(c)}return <div className="chat-list categorized-chat-list">{CONTACT_CATEGORY_ORDER.map(key=>groups[key].length?<section className="chat-category" key={key}><div className="chat-category-title"><span>{CONTACT_CATEGORY_LABELS[key]}</span><i/></div>{groups[key].map(c=><ChatRowButton key={c.id} c={c} chat={chat} user={user} open={open}/>)}</section>:null)}</div>}
 function ContactPreferencesField({chat,onSaved,compact=false}){
- const[editing,setEditing]=useState(false);
- const[alias,setAlias]=useState(chat.contact_alias||''),[category,setCategory]=useState(chat.contact_category||''),[note,setNote]=useState(chat.contact_note||'');
- const[origAlias,setOrigAlias]=useState(chat.contact_alias||''),[origCategory,setOrigCategory]=useState(chat.contact_category||''),[origNote,setOrigNote]=useState(chat.contact_note||'');
- const[busy,setBusy]=useState(false),[savedMark,setSavedMark]=useState(false);
- const login=chat.contact_login||'';
- const phone=chat.contact_phone||'';
- const lastSeen=chat.contact_last_seen||'';
- const displayName=chat.contact_original_name||chat.name||'';
- const aliasOrName=alias||displayName;
- const safeLogin=chat.contact_login||chat.contact_original_name||'';
- const safeName=chat.contact_original_name||chat.name||'';
- useEffect(()=>{
-  setAlias(chat.contact_alias||'');setCategory(chat.contact_category||'');setNote(chat.contact_note||'');
-  setOrigAlias(chat.contact_alias||'');setOrigCategory(chat.contact_category||'');setOrigNote(chat.contact_note||'');
-  setEditing(false);setSavedMark(false)
- },[chat.id,chat.contact_alias,chat.contact_category,chat.contact_note]);
- async function save(){setBusy(true);setSavedMark(false);try{const result=await api(`/api/contacts/${chat.contact_id}/preferences`,{method:'PATCH',body:JSON.stringify({alias:alias.trim()||null,category:category||null,note:note.trim()||null})});const updated={...chat,name:result.display_name,contact_alias:result.alias,contact_category:result.category,contact_note:result.note,contact_original_name:result.original_name};onSaved(updated);setEditing(false);setSavedMark(true);setTimeout(()=>setSavedMark(false),1600)}catch(e){alert(e.message)}finally{setBusy(false)}}
- function cancel(){setAlias(origAlias);setCategory(origCategory);setNote(origNote);setEditing(false)}
- function startEdit(){setOrigAlias(alias);setOrigCategory(category);setOrigNote(note);setEditing(true)}
- if(!editing)return <section className={'inspector-section contact-preferences-section '+(compact?'compact':'')}><div className="inspector-title"><b>Мои данные контакта</b><button className="contact-pref-edit-btn" onClick={startEdit}>Редактировать</button></div><div className="contact-pref-view">{savedMark&&<div className="contact-saved-tag">Сохранено</div>}<div className="pref-row"><span className="pref-label">Имя</span><span className="pref-value">{safeName}</span></div><div className="pref-row"><span className="pref-label">Псевдоним</span><span className="pref-value">{alias||safeName}</span></div><div className="pref-row"><span className="pref-label">Категория</span><span className="pref-value">{category||'—'}</span></div><div className="pref-row"><span className="pref-label">Заметка</span><span className="pref-value">{note||'—'}</span></div><div className="pref-row"><span className="pref-label">Логин</span><span className="pref-value">@{safeLogin}</span></div>{phone?<div className="pref-row"><span className="pref-label">Телефон</span><span className="pref-value">{phone}</span></div>:null}<div className="pref-row"><span className="pref-label">Последний визит</span><span className="pref-value">{lastSeen||'неизвестно'}</span></div></div></section>;
- return <section className={'inspector-section contact-preferences-section '+(compact?'compact':'')}><div className="inspector-title"><b>Мои данные контакта</b></div><div className="contact-pref-edit"><div className="pref-row"><span className="pref-label">Имя</span><span className="pref-value">{safeName}</span></div><div className="pref-row"><span className="pref-label">Логин</span><span className="pref-value">@{safeLogin}</span></div><label className="pref-field"><span>Псевдоним</span><input value={alias} maxLength="80" onChange={e=>setAlias(e.target.value)} placeholder={safeName}/></label><label className="pref-field"><span>Категория</span><select value={category} onChange={e=>setCategory(e.target.value)}><option value="">Без категории</option><option value="family">Семья</option><option value="friends">Друзья</option><option value="work">Работа</option></select></label><label className="pref-field"><span>Заметка</span><textarea value={note} maxLength="2000" rows={compact?3:4} onChange={e=>setNote(e.target.value)} placeholder="Видна только вам"/></label>{phone?<div className="pref-row"><span className="pref-label">Телефон</span><span className="pref-value">{phone}</span></div>:null}<div className="pref-row"><span className="pref-label">Последний визит</span><span className="pref-value">{lastSeen||'неизвестно'}</span></div><div className="contact-pref-actions"><button className="secondary" disabled={busy} onClick={cancel}>Отмена</button><button className="primary" disabled={busy} onClick={save}>{busy?'Сохранение…':'Сохранить'}</button></div></div></section>;
+ const contact=(chat.members||[]).find(m=>m.id===chat.contact_id)||{};
+ const[editing,setEditing]=useState(false),[alias,setAlias]=useState(chat.contact_alias||''),[category,setCategory]=useState(chat.contact_category||''),[note,setNote]=useState(chat.contact_note||''),[busy,setBusy]=useState(false);
+ const reset=()=>{setAlias(chat.contact_alias||'');setCategory(chat.contact_category||'');setNote(chat.contact_note||'')};
+ useEffect(()=>{reset();setEditing(false)},[chat.id,chat.contact_alias,chat.contact_category,chat.contact_note]);
+ const categoryLabel={family:'Семья',friends:'Друзья',work:'Работа'}[chat.contact_category]||'Без категории';
+ async function save(){setBusy(true);try{const result=await api(`/api/contacts/${chat.contact_id}/preferences`,{method:'PATCH',body:JSON.stringify({alias:alias.trim()||null,category:category||null,note:note.trim()||null})});const updated={...chat,name:result.display_name,contact_alias:result.alias,contact_category:result.category,contact_note:result.note,contact_original_name:result.original_name};onSaved(updated);setEditing(false)}catch(e){alert(e.message)}finally{setBusy(false)}}
+ function cancel(){reset();setEditing(false)}
+ return <section className={'inspector-section contact-preferences-section '+(compact?'compact':'')}>
+  <div className="inspector-title"><b>Информация о контакте</b></div>
+  <div className="contact-view-grid"><div><span>Настоящее имя</span><b>{chat.contact_original_name||chat.name}</b></div><div><span>Логин</span><b>@{contact.username||'—'}</b></div><div><span>Последний визит</span><b>{lastSeenText(contact)||'—'}</b></div></div>
+  {!editing?<>
+   <div className="contact-view-grid personal"><div><span>Мой псевдоним</span><b>{chat.contact_alias||chat.contact_original_name||chat.name}</b></div><div><span>Категория</span><b>{categoryLabel}</b></div><div className="full"><span>Личная заметка</span><p>{chat.contact_note||'Не задана'}</p></div></div>
+   <button className="contact-preferences-edit" onClick={()=>setEditing(true)}>Редактировать</button>
+  </>:<>
+   <label className="contact-preference-field"><span>Мой псевдоним</span><input value={alias} maxLength="80" onChange={e=>setAlias(e.target.value)} placeholder={chat.contact_original_name||chat.name}/></label>
+   <label className="contact-preference-field"><span>Категория</span><select value={category} onChange={e=>setCategory(e.target.value)}><option value="">Без категории</option><option value="family">Семья</option><option value="friends">Друзья</option><option value="work">Работа</option></select></label>
+   <label className="contact-preference-field"><span>Личная заметка</span><textarea value={note} maxLength="2000" rows={compact?3:4} onChange={e=>setNote(e.target.value)} placeholder="Видна только вам"/></label>
+   <div className="contact-preferences-actions"><button className="secondary" disabled={busy} onClick={cancel}>Отмена</button><button className="contact-preferences-save" disabled={busy} onClick={save}>{busy?'Сохранение…':'Сохранить'}</button></div>
+  </>}
+  <small>Псевдоним, категория и заметка видны только вам</small>
+ </section>
 }
 
-function MessengerApp({uiMode}){const[activeSection,setActiveSection]=useState(()=>sessionStorage.getItem('workspace.activeSection')||'chats'),[user,setUser]=useState(null),[chats,setChats]=useState([]),[chat,setChat]=useState(null),[msgs,setMsgs]=useState([]),[text,setText]=useState(''),[showNew,setShowNew]=useState(false),[showProfile,setShowProfile]=useState(false),[showStorage,setShowStorage]=useState(false),[showInspector,setShowInspector]=useState(true),[embeddedApp,setEmbeddedApp]=useState(null),[homeLinkSlot,setHomeLinkSlot]=useState(null),[showGroupEdit,setShowGroupEdit]=useState(false),[quickLinkSlot,setQuickLinkSlot]=useState(null),[showAllQuickLinks,setShowAllQuickLinks]=useState(false),[showAttach,setShowAttach]=useState(false),[selectedFile,setSelectedFile]=useState(null),[mobileChat,setMobileChat]=useState(false),[mobileTab,setMobileTab]=useState('chat'),[pushInfo,setPushInfo]=useState(''),[sending,setSending]=useState(false),[shareUploading,setShareUploading]=useState(false),[invite,setInvite]=useState(null),[requestedCallId,setRequestedCallId]=useState(()=>new URLSearchParams(location.search).get('call')),[device,setDevice]=useState(()=>detectDevice(uiMode)),[callActive,setCallActive]=useState(false),[searchQuery,setSearchQuery]=useState(''),[searchKind,setSearchKind]=useState('all'),[searchResults,setSearchResults]=useState({}),[searchBusy,setSearchBusy]=useState(false),[searchActive,setSearchActive]=useState(false),[chatSearchOpen,setChatSearchOpen]=useState(false),[chatSearchQuery,setChatSearchQuery]=useState(''),[chatSearchResults,setChatSearchResults]=useState([]),[linkPastePending,setLinkPastePending]=useState(false),[manualLinkOpen,setManualLinkOpen]=useState(false),[manualLinkValue,setManualLinkValue]=useState(''),[manualLinkError,setManualLinkError]=useState(''),[searchHistory,setSearchHistory]=useState(()=>{try{return JSON.parse(localStorage.searchHistory||'[]')}catch{return[]}});const file=useRef(),imageFile=useRef(),shareFile=useRef(),bottom=useRef(),messagesRef=useRef(),composerRef=useRef(),searchInput=useRef(),wsRef=useRef(),activeChat=useRef(null),retry=useRef(null),seenCallEvents=useRef(new Set()),lastCallEvent=useRef(0),clipboardReadBusy=useRef(false),shareRequestSeq=useRef(0);
+function App(){const[activeSection,setActiveSection]=useState(()=>sessionStorage.getItem('workspace.activeSection')||'chats'),[user,setUser]=useState(null),[chats,setChats]=useState([]),[chat,setChat]=useState(null),[msgs,setMsgs]=useState([]),[text,setText]=useState(''),[showNew,setShowNew]=useState(false),[showProfile,setShowProfile]=useState(false),[showStorage,setShowStorage]=useState(false),[showInspector,setShowInspector]=useState(true),[embeddedApp,setEmbeddedApp]=useState(null),[homeLinkSlot,setHomeLinkSlot]=useState(null),[showGroupEdit,setShowGroupEdit]=useState(false),[quickLinkSlot,setQuickLinkSlot]=useState(null),[showAllQuickLinks,setShowAllQuickLinks]=useState(false),[showAttach,setShowAttach]=useState(false),[selectedFile,setSelectedFile]=useState(null),[mobileChat,setMobileChat]=useState(false),[mobileTab,setMobileTab]=useState('chat'),[pushInfo,setPushInfo]=useState(''),[sending,setSending]=useState(false),[shareUploading,setShareUploading]=useState(false),[invite,setInvite]=useState(null),[requestedCallId,setRequestedCallId]=useState(()=>new URLSearchParams(location.search).get('call')),[device,setDevice]=useState(()=>window.__INITIAL_DEVICE__||detectDevice()),[searchQuery,setSearchQuery]=useState(''),[searchKind,setSearchKind]=useState('all'),[searchResults,setSearchResults]=useState({}),[searchBusy,setSearchBusy]=useState(false),[searchActive,setSearchActive]=useState(false),[chatSearchOpen,setChatSearchOpen]=useState(false),[chatSearchQuery,setChatSearchQuery]=useState(''),[chatSearchResults,setChatSearchResults]=useState([]),[linkPastePending,setLinkPastePending]=useState(false),[manualLinkOpen,setManualLinkOpen]=useState(false),[manualLinkValue,setManualLinkValue]=useState(''),[manualLinkError,setManualLinkError]=useState(''),[showChecklistCreate,setShowChecklistCreate]=useState(false),[searchHistory,setSearchHistory]=useState(()=>{try{return JSON.parse(localStorage.searchHistory||'[]')}catch{return[]}});const file=useRef(),imageFile=useRef(),shareFile=useRef(),bottom=useRef(),messagesRef=useRef(),composerRef=useRef(),searchInput=useRef(),wsRef=useRef(),activeChat=useRef(null),retry=useRef(null),seenCallEvents=useRef(new Set()),lastCallEvent=useRef(0),clipboardReadBusy=useRef(false),shareRequestSeq=useRef(0);
 useEffect(()=>{sessionStorage.setItem('workspace.activeSection',activeSection)},[activeSection]);
 useEffect(()=>{
   if(!showAttach)return;
@@ -656,7 +575,7 @@ useEffect(()=>{
   })();
   return()=>{cancelled=true};
 },[]);
-useEffect(()=>{let stableHeight=Math.max(window.innerHeight,window.visualViewport?.height||0);let raf=0;let settleTimer=0;const sync=()=>{cancelAnimationFrame(raf);raf=requestAnimationFrame(()=>{const d=detectDevice(uiMode);setDevice(d);document.documentElement.dataset.device=d.type;document.documentElement.dataset.orientation=d.orientation;const vv=window.visualViewport;const active=document.activeElement;const editable=!!(active&&(['TEXTAREA','INPUT'].includes(active.tagName)||active.isContentEditable));const visibleHeight=vv?.height||window.innerHeight;const visibleTop=vv?.offsetTop||0;const visibleBottom=visibleTop+visibleHeight;if(!editable&&visibleHeight>stableHeight*.78)stableHeight=Math.max(stableHeight,visibleHeight,window.innerHeight);const keyboardDelta=Math.max(0,stableHeight-visibleHeight);const keyboardOpen=!!(d.type!=='desktop'&&editable&&keyboardDelta>80);const keyboardInset=keyboardOpen?Math.max(0,window.innerHeight-visibleBottom):0;const composer=document.querySelector('.composer-wrap');const composerHeight=Math.ceil(composer?.getBoundingClientRect().height||58);document.documentElement.dataset.keyboardOpen=keyboardOpen?'true':'false';document.documentElement.style.setProperty('--vv-height',`${visibleHeight}px`);document.documentElement.style.setProperty('--vv-top',`${visibleTop}px`);document.documentElement.style.setProperty('--vv-bottom',`${visibleBottom}px`);document.documentElement.style.setProperty('--viewport-bottom',`${Math.max(0,window.innerHeight-visibleBottom)}px`);document.documentElement.style.setProperty('--keyboard-inset',`${keyboardInset}px`);document.documentElement.style.setProperty('--composer-height',`${composerHeight}px`);document.documentElement.style.setProperty('--app-height',`${stableHeight}px`);if(keyboardOpen){window.scrollTo(0,0);if(document.scrollingElement)document.scrollingElement.scrollTop=0;clearTimeout(settleTimer);settleTimer=window.setTimeout(()=>{window.scrollTo(0,0)},60)}})};sync();window.addEventListener('resize',sync);window.addEventListener('orientationchange',sync);window.addEventListener('focusin',sync,true);window.addEventListener('focusout',sync,true);window.visualViewport?.addEventListener('resize',sync);window.visualViewport?.addEventListener('scroll',sync);return()=>{cancelAnimationFrame(raf);clearTimeout(settleTimer);window.removeEventListener('resize',sync);window.removeEventListener('orientationchange',sync);window.removeEventListener('focusin',sync,true);window.removeEventListener('focusout',sync,true);window.visualViewport?.removeEventListener('resize',sync);window.visualViewport?.removeEventListener('scroll',sync)}},[]);
+useEffect(()=>{let stableHeight=Math.max(window.innerHeight,window.visualViewport?.height||0);let raf=0;let settleTimer=0;const sync=()=>{cancelAnimationFrame(raf);raf=requestAnimationFrame(()=>{const d=detectDevice();setDevice(d);document.documentElement.dataset.device=d.type;document.documentElement.dataset.orientation=d.orientation;document.documentElement.dataset.platform=d.platform||'desktop';const vv=window.visualViewport;const active=document.activeElement;const editable=!!(active&&(['TEXTAREA','INPUT'].includes(active.tagName)||active.isContentEditable));const visibleHeight=vv?.height||window.innerHeight;const visibleTop=vv?.offsetTop||0;const visibleBottom=visibleTop+visibleHeight;if(!editable&&visibleHeight>stableHeight*.78)stableHeight=Math.max(stableHeight,visibleHeight,window.innerHeight);const keyboardDelta=Math.max(0,stableHeight-visibleHeight);const keyboardOpen=!!(d.type==='phone'&&editable&&keyboardDelta>80);const keyboardInset=keyboardOpen?Math.max(0,window.innerHeight-visibleBottom):0;const composer=document.querySelector('.composer-wrap');const composerHeight=Math.ceil(composer?.getBoundingClientRect().height||58);document.documentElement.dataset.keyboardOpen=keyboardOpen?'true':'false';document.documentElement.style.setProperty('--vv-height',`${visibleHeight}px`);document.documentElement.style.setProperty('--vv-top',`${visibleTop}px`);document.documentElement.style.setProperty('--vv-bottom',`${visibleBottom}px`);document.documentElement.style.setProperty('--viewport-bottom',`${Math.max(0,window.innerHeight-visibleBottom)}px`);document.documentElement.style.setProperty('--keyboard-inset',`${keyboardInset}px`);document.documentElement.style.setProperty('--composer-height',`${composerHeight}px`);document.documentElement.style.setProperty('--app-height',`${stableHeight}px`);if(keyboardOpen){window.scrollTo(0,0);if(document.scrollingElement)document.scrollingElement.scrollTop=0;clearTimeout(settleTimer);settleTimer=window.setTimeout(()=>{window.scrollTo(0,0)},60)}})};sync();window.addEventListener('resize',sync);window.addEventListener('orientationchange',sync);window.addEventListener('focusin',sync,true);window.addEventListener('focusout',sync,true);window.visualViewport?.addEventListener('resize',sync);window.visualViewport?.addEventListener('scroll',sync);return()=>{cancelAnimationFrame(raf);clearTimeout(settleTimer);window.removeEventListener('resize',sync);window.removeEventListener('orientationchange',sync);window.removeEventListener('focusin',sync,true);window.removeEventListener('focusout',sync,true);window.visualViewport?.removeEventListener('resize',sync);window.visualViewport?.removeEventListener('scroll',sync)}},[]);
 
 useEffect(()=>{
   if(!('serviceWorker'in navigator))return;
@@ -774,7 +693,7 @@ useEffect(()=>{
   return()=>{cancelled=true}
 },[user,requestedCallId,chats]);
 useEffect(()=>{const el=messagesRef.current;if(!el)return;requestAnimationFrame(()=>{el.scrollTop=el.scrollHeight})},[msgs,chat?.id]);
-useEffect(()=>{if(!user)return;loadChats();let stopped=false;const connect=()=>{if(stopped)return;const proto=location.protocol==='https:'?'wss':'ws';const ws=new WebSocket(`${proto}://${location.host}/ws?token_q=${encodeURIComponent(localStorage.token)}`);wsRef.current=ws;ws.onopen=()=>{clearInterval(ws._heartbeat);ws._heartbeat=setInterval(()=>{if(ws.readyState===WebSocket.OPEN)ws.send(JSON.stringify({type:'ping'}))},20000)};ws.onmessage=e=>{const p=JSON.parse(e.data);if(p.event_id){if(seenCallEvents.current.has(p.event_id))return;seenCallEvents.current.add(p.event_id);lastCallEvent.current=Math.max(lastCallEvent.current,p.event_id)}if(p.type==='message'){if(p.message?.sender?.id!==user.id)playIncomingMessageSound();if(activeChat.current?.id===p.message.chat_id)setMsgs(m=>m.some(x=>x.id===p.message.id)?m.map(x=>x.id===p.message.id?p.message:x):[...m,p.message]);loadChats()}else if(p.type==='message_status'){setMsgs(m=>m.map(x=>x.id===p.message_id?{...x,status:p.status}:x))}else if(p.type==='presence'){setChats(cs=>cs.map(c=>({...c,members:c.members.map(m=>m.id===p.user.id?p.user:m)})));setChat(c=>c?({...c,members:c.members.map(m=>m.id===p.user.id?p.user:m)}):c)}else if(p.type==='call_invite'){if(isFreshCall(p.call)){setInvite(p.call);setRequestedCallId(p.call.call_id)}else closeCallNotifications()}else if(p.type.startsWith('call_')||p.type==='webrtc_signal'){window.__messengerCallEvent?.(p)}};ws.onclose=()=>{clearInterval(ws._heartbeat);if(!stopped)retry.current=setTimeout(connect,1200)}};connect();const poll=setInterval(()=>{loadChats();if(activeChat.current){loadMessages(activeChat.current.id);if(!activeChat.current.is_group){const oid=activeChat.current.members.find(m=>m.id!==user.id)?.id;if(oid)api(`/api/users/${oid}/presence`).then(p=>{setChat(c=>c?({...c,members:c.members.map(m=>m.id===p.id?p:m)}):c);setChats(cs=>cs.map(c=>({...c,members:c.members.map(m=>m.id===p.id?p:m)}))) }).catch(()=>{})}}},5000);api('/api/calls/active').then(calls=>{const c=calls.find(x=>x.caller.id!==user.id&&isFreshCall(x)&&!(x.declined_ids||[]).includes(user.id));if(c){setInvite(c);setRequestedCallId(c.call_id)}else{setInvite(null);closeCallNotifications()}}).catch(()=>{});return()=>{stopped=true;clearInterval(poll);clearTimeout(retry.current);wsRef.current?.close()}},[user]);
+useEffect(()=>{if(!user)return;loadChats();let stopped=false;const connect=()=>{if(stopped)return;const proto=location.protocol==='https:'?'wss':'ws';const ws=new WebSocket(`${proto}://${location.host}/ws?token_q=${encodeURIComponent(localStorage.token)}`);wsRef.current=ws;ws.onopen=()=>{clearInterval(ws._heartbeat);ws._heartbeat=setInterval(()=>{if(ws.readyState===WebSocket.OPEN)ws.send(JSON.stringify({type:'ping'}))},20000)};ws.onmessage=e=>{const p=JSON.parse(e.data);if(p.event_id){if(seenCallEvents.current.has(p.event_id))return;seenCallEvents.current.add(p.event_id);lastCallEvent.current=Math.max(lastCallEvent.current,p.event_id)}if(p.type==='message'){if(p.message?.sender?.id!==user.id)playIncomingMessageSound();if(activeChat.current?.id===p.message.chat_id)setMsgs(m=>m.some(x=>x.id===p.message.id)?m.map(x=>x.id===p.message.id?p.message:x):[...m,p.message]);loadChats()}else if(p.type==='message_status'){setMsgs(m=>m.map(x=>x.id===p.message_id?{...x,status:p.status}:x))}else if(p.type==='presence'){setChats(cs=>cs.map(c=>({...c,members:c.members.map(m=>m.id===p.user.id?p.user:m)})));setChat(c=>c?({...c,members:c.members.map(m=>m.id===p.user.id?p.user:m)}):c)}else if(p.type==='checklist_update'){setMsgs(ms=>ms.map(m=>m.checklist?.id===p.checklist.id?{...m,checklist:p.checklist}:m))}else if(p.type==='checklist_delete'){setMsgs(ms=>ms.filter(m=>m.checklist?.id!==p.checklist_id))}else if(p.type==='call_invite'){if(isFreshCall(p.call)){setInvite(p.call);setRequestedCallId(p.call.call_id)}else closeCallNotifications()}else if(p.type.startsWith('call_')||p.type==='webrtc_signal'){window.__messengerCallEvent?.(p)}};ws.onclose=()=>{clearInterval(ws._heartbeat);if(!stopped)retry.current=setTimeout(connect,1200)}};connect();const poll=setInterval(()=>{loadChats();if(activeChat.current){loadMessages(activeChat.current.id);if(!activeChat.current.is_group){const oid=activeChat.current.members.find(m=>m.id!==user.id)?.id;if(oid)api(`/api/users/${oid}/presence`).then(p=>{setChat(c=>c?({...c,members:c.members.map(m=>m.id===p.id?p:m)}):c);setChats(cs=>cs.map(c=>({...c,members:c.members.map(m=>m.id===p.id?p:m)}))) }).catch(()=>{})}}},5000);api('/api/calls/active').then(calls=>{const c=calls.find(x=>x.caller.id!==user.id&&isFreshCall(x)&&!(x.declined_ids||[]).includes(user.id));if(c){setInvite(c);setRequestedCallId(c.call_id)}else{setInvite(null);closeCallNotifications()}}).catch(()=>{});return()=>{stopped=true;clearInterval(poll);clearTimeout(retry.current);wsRef.current?.close()}},[user]);
 useEffect(()=>{
   if(!user)return;let stopped=false,busy=false;
   const tick=async()=>{if(stopped||busy)return;busy=true;try{
@@ -839,251 +758,31 @@ async function send(){if(!chat||sending)return;setSending(true);try{let attachme
 async function enablePush(){setPushInfo('Проверка…');try{if(!('serviceWorker'in navigator)||!('PushManager'in window))throw new Error('Push-уведомления не поддерживаются этим браузером');if(!window.isSecureContext)throw new Error('Нужен HTTPS-домен');if(!isStandalone())throw new Error('Сначала добавьте сайт на экран «Домой» и откройте его с иконки');const reg=await navigator.serviceWorker.register('/sw.js',{scope:'/'});await navigator.serviceWorker.ready;const perm=await Notification.requestPermission();if(perm!=='granted')throw new Error('Разрешение на уведомления не выдано');const{key,configured}=await api('/api/push/public-key');if(!configured||!key)throw new Error('На сервере не настроены VAPID-ключи');let sub=await reg.pushManager.getSubscription();if(sub)await sub.unsubscribe();sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64ToArray(key)});await api('/api/push/subscribe',{method:'POST',body:JSON.stringify(sub.toJSON())});setPushInfo('Уведомления включены')}catch(e){setPushInfo(e.message)}}
 async function testPush(){try{await api('/api/push/test',{method:'POST',body:'{}'});setPushInfo('Тест отправлен')}catch(e){setPushInfo(e.message)}}
 useEffect(()=>{const el=composerRef.current;if(!el)return;const apply=()=>{const h=Math.ceil(el.getBoundingClientRect().height||58);document.documentElement.style.setProperty('--mobile-composer-height',`${h}px`)};apply();const ro=typeof ResizeObserver!=='undefined'?new ResizeObserver(apply):null;ro?.observe(el);window.addEventListener('resize',apply);return()=>{ro?.disconnect();window.removeEventListener('resize',apply)}},[chat,mobileTab,selectedFile,shareUploading,text]);
-useEffect(()=>{
- const tryLock=()=>{if((isStandalone()||document.fullscreenElement)&&screen.orientation?.lock){screen.orientation.lock('portrait').catch(()=>{})}};
- tryLock();
- window.addEventListener('orientationchange',tryLock);
- window.addEventListener('pageshow',tryLock);
- return()=>{window.removeEventListener('orientationchange',tryLock);window.removeEventListener('pageshow',tryLock)}
-},[uiMode]);
 if(user?.id)localStorage.userId=String(user.id);if(!user)return <Auth done={setUser}/>;
 const other=chat&&!chat.is_group?chat.members.find(m=>m.id!==user.id):null;
 const composerView=chat?<footer ref={composerRef} className="composer-wrap"><div className="composer"><button className="attach" disabled={chat.can_write===false} onClick={()=>setMobileTab('attachments')}><Icon name="paperclip" size={22}/></button>{selectedFile&&<div className="selected-file"><span>{selectedFile.name}</span><button onClick={()=>setSelectedFile(null)}>×</button></div>}{shareUploading&&<div className="paste-link-hint share-uploading"><span>Файлы загружаются</span><b>Создаём одну ссылку…</b></div>}<textarea rows="1" disabled={chat.can_write===false} value={text} onChange={e=>setText(e.target.value)} onPaste={handleComposerPaste} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}}} placeholder={chat.can_write===false?"Гостям отправка сообщений недоступна":"Сообщение"}/><button className="send" onClick={send} disabled={sending||shareUploading||chat.can_write===false}><Icon name="send" size={20}/></button></div></footer>:null;
-
-function __renderMsg(m){const isMine=m.sender.id===user.id;return(<div className={"message-item "+(isMine?"mine":"")} key={m.id}><div id={`message-${m.id}`} className={"bubble "+(isMine?"mine":"")+(chatSearchResults.some(x=>x.id===m.id)?" search-hit":"")}>{chat.is_group&&!isMine&&<div className="sender">{m.sender.display_name||m.sender.username}</div>}{m.text&&<div className="message-text"><LinkifiedText text={m.text}/></div>}{m.file_url&&(m.mime_type||"").startsWith("image/")?<a href={m.file_url} target="_blank" rel="noreferrer"><img src={m.file_url}/></a>:m.file_url?<a className="file-card" href={m.file_url} target="_blank" rel="noreferrer">📎 <span>{m.file_name}</span></a>:null}{isMine&&<div className="bubble-meta"><time>{moscowTime(m.created_at)}</time><MessageTicks status={m.status||"sent"}/></div>}</div></div>);}
-return <div className={`app ui-${uiMode} device-${device.type} orientation-${device.orientation} ${device.standalone?'standalone':''} ${device.touch?'touch-ui':''} ${mobileChat?'mobile-chat-open':''} ${searchActive?'search-active':''} ${showGroupEdit?'group-edit-open':''} ${showInspector?'inspector-open':''} ${showAttach?'attach-menu-open':''}`}>
-<nav className="desktop-rail">
-<button className="rail-avatar" onClick={()=>setShowProfile(true)}>
-<Avatar user={user} className="avatar"/>
-</button>
-<div className="rail-nav">
-<button className={activeSection==='chats'?'active':''} title="Чаты" onClick={()=>setActiveSection('chats')}>
-<span className="rail-chat-dot"/>
-</button>
-<button className={activeSection==='cloud'?'active':''} title="Моё пространство" onClick={()=>setActiveSection('cloud')}>
-<Icon name="cloud" size={24}/>
-</button>
-<button className={activeSection==='apps'?'active':''} title="Приложения" onClick={()=>setActiveSection('apps')}>
-<Icon name="apps" size={24}/>
-</button>
-<button className={activeSection==='favorites'?'active':''} title="Избранное" onClick={()=>setActiveSection('favorites')}>
-<Icon name="star" size={24}/>
-</button>
-</div>
-<div className="rail-bottom">
-<button title="Настройки" onClick={()=>setShowProfile(true)}>
-<Icon name="settings" size={24}/>
-</button>
-</div>
-</nav>{activeSection!=='chats'&&<WorkspacePanel section={activeSection} user={user} onOpenApp={setEmbeddedApp} onEditApp={setHomeLinkSlot} onBack={()=>setActiveSection('chats')}/>}<aside className={`chat-sidebar ${activeSection!=='chats'?'workspace-hidden':''}`}>
-<div className="topbar">
-<button className="profile-button" onClick={()=>setShowProfile(true)}>
-<Avatar user={user} className="avatar"/>
-<span className="profile-copy">
-<b>{user.display_name||user.username}</b>
-<small>@{user.username}</small>
-</span>
-</button>
-<div className="home-quick-links-mobile-hide">
-<HomeQuickLinks user={user} onEdit={setHomeLinkSlot}/>
-</div>
-<div className="top-actions">
-<button className="storage-button mobile-top-cloud" title="Личное хранилище" aria-label="Личное хранилище" onClick={()=>setActiveSection('cloud')}>
-<Icon name="cloud" size={20}/>
-</button>
-<button className="notification-button" title="Уведомления" aria-label="Уведомления" onClick={enablePush}>
-<Icon name="bell" size={20}/>
-</button>
-<button title="Новый чат" onClick={()=>setShowNew(true)}>＋</button>
-</div>
-</div>
-<>{!searchActive&&<div className="search-box">
-<span>⌕</span>
-<input value="" readOnly onPointerDown={()=>{setSearchActive(true);document.documentElement.dataset.searchActive='true';document.documentElement.style.setProperty('--app-height',`${window.innerHeight}px`);requestAnimationFrame(()=>searchInput.current?.focus())}} placeholder="Поиск"/>
-</div>}</>{pushInfo&&<div className="push-box">
-<span>{pushInfo}</span>
-<button onClick={testPush}>Тест</button>
-</div>}<CategorizedChatList chats={chats} chat={chat} user={user} open={open}/>
-</aside>
-<main className={activeSection!=='chats'?'workspace-hidden':''}>{chat?<>
-<header className="chat-header">
-<button className="back" onClick={closeChat}>‹</button>
-<button className={'group-avatar-button '+(chat.is_group&&chat.can_edit?'editable':'')} onClick={()=>chat.is_group&&chat.can_edit&&setShowGroupEdit(true)} title={chat.is_group&&chat.can_edit?'Изменить группу':''}>
-<Avatar user={chat.is_group?{display_name:chat.name,avatar_url:chat.avatar_url}:other} name={chat.name}/>
-</button>
-<div className="chat-heading">
-<b>{chat.name}</b>
-<small>{chat.is_group?`${chat.members.filter(m=>m.online).length} в сети из ${chat.members.length}`:(lastSeenText(other)||'статус уточняется…')}</small>
-</div>
-<GroupQuickLinks chat={chat} onEdit={setQuickLinkSlot} onMore={()=>setShowAllQuickLinks(true)}/>
-<div className="call-header-actions">
-<button title={chat.can_call===false?'Гостям звонки недоступны':'Аудиозвонок'} disabled={chat.can_call===false} onClick={()=>window.__startCall?.('audio')}>
-<Icon name="phone" size={22}/>
-</button>
-<button title={chat.can_call===false?'Гостям звонки недоступны':'Видеозвонок'} disabled={chat.can_call===false} onClick={()=>window.__startCall?.('video')}>
-<Icon name="video" size={23}/>
-</button>
-<button title="Информация" onClick={()=>setShowInspector(v=>!v)}>
-<Icon name="info" size={23}/>
-</button>
-</div>
-</header>{chatSearchOpen&&<div className="chat-search-bar">
-<input autoFocus value={chatSearchQuery} onChange={e=>setChatSearchQuery(e.target.value)} placeholder="Поиск в этом чате"/>
-<span>{chatSearchResults.length?`${chatSearchResults.length} найдено`:chatSearchQuery?'Нет совпадений':''}</span>
-<button onClick={()=>{setChatSearchOpen(false);setChatSearchQuery('');setChatSearchResults([])}}>×</button>{chatSearchResults.length>0&&<div className="chat-search-results">{chatSearchResults.map(m=>
-<button key={m.id} onClick={()=>document.getElementById(`message-${m.id}`)?.scrollIntoView({behavior:'smooth',block:'center'})}>
-<b>{m.sender.display_name||m.sender.username}</b>
-<span>{m.text||m.file_name}</span>
-<time>{moscowTime(m.created_at)}</time>
-</button>)}</div>}</div>}<section className={`messages ${mobileTab!=='chat'?'mobile-tab-hidden':''}`} ref={messagesRef}>{msgs.map(m=>__renderMsg(m))}<div ref={bottom}/>
-</section>
-<input ref={imageFile} hidden type="file" accept="image/*,video/*" onChange={e=>setSelectedFile(e.target.files?.[0]||null)}/>
-<input ref={file} hidden type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.zip,.rar,text/*,application/*" onChange={e=>setSelectedFile(e.target.files?.[0]||null)}/>
-<input ref={shareFile} hidden type="file" multiple onChange={e=>createShareLink(e.target.files)}/>
-<MobileChatPanel tab={mobileTab} chat={chat} msgs={msgs} user={user} onOpenLink={link=>setEmbeddedApp({title:link.title||link.name||'Ресурс',url:link.url})} onEditLink={i=>setQuickLinkSlot(i)} onPhoto={()=>imageFile.current?.click()} onFile={()=>file.current?.click()} onShare={()=>shareFile.current?.click()} onSearch={()=>setChatSearchOpen(true)} onInfo={()=>setShowInspector(true)} onGroupEdit={()=>setShowGroupEdit(true)} onPush={enablePush} onContactSaved={updated=>{setChat(updated);setChats(xs=>xs.map(x=>x.id===updated.id?updated:x))}}/>{mobileTab==='chat'&&!callActive&&(device.touch?createPortal(React.cloneElement(composerView,{className:'composer-wrap viewport-composer'}),document.body):composerView)}<MobileChatTaskbar tab={mobileTab} setTab={setMobileTab} callActive={callActive}/>
-</>:<div className="empty">
-<div className="empty-mark">M</div>
-<h2>Messenger</h2>
-<p>Выберите чат или создайте новый</p>
-</div>}</main>{activeSection==='chats'&&chat&&showInspector&&<aside className="desktop-inspector">
-<div className="inspector-head">
-<b>Информация</b>
-<button onClick={()=>setShowInspector(false)}>×</button>
-</div>
-<div className="inspector-profile">
-<Avatar user={chat.is_group?{display_name:chat.name,avatar_url:chat.avatar_url}:other} name={chat.name} className="inspector-avatar"/>
-<div>
-<b>{chat.name}</b>
-<small>{chat.is_group?`Группа · ${chat.members.length} участника`:(lastSeenText(other)||'статус уточняется…')}</small>
-</div>
-</div>{!chat.is_group&&<ContactPreferencesField chat={chat} onSaved={updated=>{setChat(updated);setChats(xs=>xs.map(x=>x.id===updated.id?updated:x))}}/>}{chat.is_group&&<section className="inspector-section">
-<div className="inspector-title">
-<b>Участники</b>
-<span>{chat.members.length}</span>
-</div>
-<div className="member-avatars">{chat.members.slice(0,5).map(m=>
-<Avatar key={m.id} user={m} className="mini-avatar"/>)}{chat.can_manage_members&&<button onClick={()=>setShowGroupEdit(true)}>＋</button>}</div>
-</section>}<section className="inspector-section">
-<div className="inspector-title">
-<b>Ресурсы</b>{chat.can_edit_links&&<button onClick={()=>setQuickLinkSlot(0)}>＋</button>}</div>
-<div className="resource-list">{(chat.quick_links||[]).filter(Boolean).map((l,i)=>
-<button key={i} className="resource-open-button" onClick={()=>setEmbeddedApp({title:l.title||l.name||'Ресурс',url:l.url})}>
-<span className="resource-icon">{(l.title||l.name||'С')[0].toUpperCase()}</span>
-<span>{l.title||l.name||'Ссылка'}</span>
-<b>›</b>
-</button>)}{!(chat.quick_links||[]).filter(Boolean).length&&<small>Пока нет ресурсов</small>}</div>
-</section>
-<section className="inspector-section">
-<div className="inspector-title">
-<b>Медиа</b>
-</div>
-<button className="inspector-row">
-<span>Фото</span>
-<b>{msgs.filter(m=>(m.mime_type||'').startsWith('image/')).length} ›</b>
-</button>
-<button className="inspector-row">
-<span>Документы</span>
-<b>{msgs.filter(m=>m.file_url&&!(m.mime_type||'').startsWith('image/')).length} ›</b>
-</button>
-<button className="inspector-row">
-<span>Ссылки</span>
-<b>{msgs.filter(m=>/(https?:\/\/|\/share\/)/.test(m.text||'')).length} ›</b>
-</button>
-</section>
-<section className="inspector-section">
-<div className="inspector-title">
-<b>Настройки чата</b>
-</div>
-<button className="inspector-row">
-<span>Уведомления</span>
-<span className="fake-toggle on"/>
-</button>
-</section>
-</aside>}{searchActive&&<div className="global-search-overlay" onPointerDown={closeGlobalSearch}>
-<div className="global-search-shell">
-<div className="search-box active-global" onPointerDown={e=>e.stopPropagation()}>
-<span>⌕</span>
-<input ref={searchInput} autoFocus value={searchQuery} onChange={e=>setSearchQuery(e.target.value)} placeholder="Поиск"/>
-<button onClick={closeGlobalSearch}>×</button>
-</div>
-<div onPointerDown={e=>e.stopPropagation()}>
-<SearchResults query={searchQuery} kind={searchKind} setKind={setSearchKind} results={searchResults} busy={searchBusy} historyItems={searchHistory} onHistory={q=>{setSearchQuery(q);searchInput.current?.focus()}} onOpenMessage={m=>{closeGlobalSearch();openSearchMessage(m)}} onOpenChat={c=>{closeGlobalSearch();open(c)}} onOpenUser={u=>{closeGlobalSearch();openSearchUser(u)}}/>
-</div>
-</div>
-</div>}{showAttach&&<>
-<button className="attach-backdrop" aria-label="Закрыть меню вложений" onPointerDown={e=>{e.preventDefault();e.stopPropagation();setShowAttach(false)}} onClick={e=>{e.preventDefault();e.stopPropagation();setShowAttach(false)}}/>
-<div className="attach-menu attach-menu-global" onPointerDown={e=>e.stopPropagation()} onClick={e=>e.stopPropagation()}>
-<button onClick={()=>{imageFile.current?.click();setShowAttach(false)}}>Фото или видео</button>
-<button onClick={()=>{file.current?.click();setShowAttach(false)}}>Документ</button>
-<button onClick={()=>{setShowAttach(false);shareFile.current?.click()}}>Отправить ссылку</button>
-</div>
-</>}{showGroupEdit&&chat?.is_group&&<GroupEditModal chat={chat} close={()=>setShowGroupEdit(false)} saved={c=>{setChat(c);setChats(xs=>xs.map(x=>x.id===c.id?c:x));setShowGroupEdit(false)}}/>}{showAllQuickLinks&&chat&&<QuickLinksPanel chat={chat} close={()=>setShowAllQuickLinks(false)} onEdit={i=>{setShowAllQuickLinks(false);setQuickLinkSlot(i)}}/>}{quickLinkSlot!==null&&chat&&<QuickLinkModal chat={chat} slot={quickLinkSlot} close={()=>setQuickLinkSlot(null)} saved={c=>{setChat(c);setChats(xs=>xs.map(x=>x.id===c.id?c:x));setQuickLinkSlot(null)}}/>}{homeLinkSlot!==null&&<HomeLinkModal user={user} slot={homeLinkSlot} close={()=>setHomeLinkSlot(null)} saved={u=>{setUser(u);setHomeLinkSlot(null)}}/>}{showProfile&&<ProfileModal user={user} close={()=>setShowProfile(false)} saved={u=>{setUser(u);setShowProfile(false);loadChats()}}/>}{showNew&&<NewChat close={()=>setShowNew(false)} created={c=>{setShowNew(false);loadChats();open(c)}}/>}{manualLinkOpen&&<div className="modal manual-link-modal" onPointerDown={closeManualLinkDialog}>
-<div className="modal-card glass-card" onPointerDown={e=>e.stopPropagation()}>
-<div className="modal-head">
-<h3>Вставить ссылку</h3>
-<button type="button" aria-label="Закрыть" onClick={closeManualLinkDialog}>×</button>
-</div>
-<p className="manual-link-copy">iPhone не разрешил автоматически прочитать буфер. Вставьте скопированную ссылку сюда:</p>
-<input autoFocus value={manualLinkValue} onChange={e=>{setManualLinkValue(e.target.value);setManualLinkError('')}} onPaste={e=>{const v=e.clipboardData?.getData('text/plain')||'';setManualLinkValue(v);setManualLinkError('')}} placeholder="https://files.igorson.xyz/…" autoCapitalize="none" autoCorrect="off" inputMode="url"/>{manualLinkError&&<div className="error">{manualLinkError}</div>}<div className="manual-link-actions">
-<button type="button" className="secondary" onClick={closeManualLinkDialog}>Отмена</button>
-<button type="button" className="primary" onClick={submitManualLink}>Вставить</button>
-</div>
-</div>
-</div>}{embeddedApp&&<EmbeddedAppWindow app={embeddedApp} close={()=>setEmbeddedApp(null)}/>}{!chat&&<MobileMainDock section={activeSection} setSection={setActiveSection} onSettings={()=>setShowProfile(true)} callActive={callActive}/>}<OrientationGuard/>
-<CallLayer user={user} ws={wsRef} chat={chat} invite={invite} setInvite={setInvite} onCallActive={setCallActive} clearRequestedCall={()=>{closeCallNotifications();setRequestedCallId(null);const u=new URL(location.href);u.searchParams.delete('call');history.replaceState(null,'',u.pathname+u.search)}}/>
-</div>}
+return <div className={`app device-${device.type} orientation-${device.orientation} ${device.standalone?'standalone':''} ${mobileChat?'mobile-chat-open':''} ${searchActive?'search-active':''} ${showGroupEdit?'group-edit-open':''} ${showInspector?'inspector-open':''}`}><nav className="desktop-rail"><button className="rail-avatar" onClick={()=>setShowProfile(true)}><Avatar user={user} className="avatar"/></button><div className="rail-nav"><button className={activeSection==='chats'?'active':''} title="Чаты" onClick={()=>setActiveSection('chats')}><span className="rail-chat-dot"/></button><button className={activeSection==='cloud'?'active':''} title="Моё пространство" onClick={()=>setActiveSection('cloud')}><Icon name="cloud" size={24}/></button><button className={activeSection==='apps'?'active':''} title="Приложения" onClick={()=>setActiveSection('apps')}><Icon name="apps" size={24}/></button><button className={activeSection==='favorites'?'active':''} title="Избранное" onClick={()=>setActiveSection('favorites')}><Icon name="star" size={24}/></button></div><div className="rail-bottom"><button title="Настройки" onClick={()=>setShowProfile(true)}><Icon name="settings" size={24}/></button></div></nav>{activeSection!=='chats'&&<WorkspacePanel section={activeSection} user={user} chats={chats} onOpenApp={setEmbeddedApp} onEditApp={setHomeLinkSlot} onBack={()=>setActiveSection('chats')}/>}<aside className={`chat-sidebar ${activeSection!=='chats'?'workspace-hidden':''}`}><div className="topbar"><button className="profile-button" onClick={()=>setShowProfile(true)}><Avatar user={user} className="avatar"/><span className="profile-copy"><b>{user.display_name||user.username}</b><small>@{user.username}</small></span></button><div className="home-quick-links-mobile-hide"><HomeQuickLinks user={user} onEdit={setHomeLinkSlot}/></div><div className="top-actions"><button className="storage-button mobile-top-cloud" title="Личное хранилище" aria-label="Личное хранилище" onClick={()=>setActiveSection('cloud')}><Icon name="cloud" size={20}/></button><button className="notification-button" title="Уведомления" aria-label="Уведомления" onClick={enablePush}><Icon name="bell" size={20}/></button><button title="Новый чат" onClick={()=>setShowNew(true)}>＋</button></div></div><>{!searchActive&&<div className="search-box"><span>⌕</span><input value="" readOnly onPointerDown={()=>{setSearchActive(true);document.documentElement.dataset.searchActive='true';document.documentElement.style.setProperty('--app-height',`${window.innerHeight}px`);requestAnimationFrame(()=>searchInput.current?.focus())}} placeholder="Поиск"/></div>}</>{pushInfo&&<div className="push-box"><span>{pushInfo}</span><button onClick={testPush}>Тест</button></div>}<CategorizedChatList chats={chats} chat={chat} user={user} open={open}/></aside><main className={activeSection!=='chats'?'workspace-hidden':''}>{chat?<><header className="chat-header"><button className="back" onClick={closeChat}>‹</button><button className={'group-avatar-button '+(chat.is_group&&chat.can_edit?'editable':'')} onClick={()=>chat.is_group&&chat.can_edit&&setShowGroupEdit(true)} title={chat.is_group&&chat.can_edit?'Изменить группу':''}><Avatar user={chat.is_group?{display_name:chat.name,avatar_url:chat.avatar_url}:other} name={chat.name}/></button><div className="chat-heading"><b>{chat.name}</b><small>{chat.is_group?`${chat.members.filter(m=>m.online).length} в сети из ${chat.members.length}`:(lastSeenText(other)||'статус уточняется…')}</small></div><GroupQuickLinks chat={chat} onEdit={setQuickLinkSlot} onMore={()=>setShowAllQuickLinks(true)}/><div className="call-header-actions"><button title={chat.can_call===false?'Гостям звонки недоступны':'Аудиозвонок'} disabled={chat.can_call===false} onClick={()=>window.__startCall?.('audio')}><Icon name="phone" size={22}/></button><button title={chat.can_call===false?'Гостям звонки недоступны':'Видеозвонок'} disabled={chat.can_call===false} onClick={()=>window.__startCall?.('video')}><Icon name="video" size={23}/></button><button title="Информация" onClick={()=>setShowInspector(v=>!v)}><Icon name="info" size={23}/></button></div></header>{chatSearchOpen&&<div className="chat-search-bar"><input autoFocus value={chatSearchQuery} onChange={e=>setChatSearchQuery(e.target.value)} placeholder="Поиск в этом чате"/><span>{chatSearchResults.length?`${chatSearchResults.length} найдено`:chatSearchQuery?'Нет совпадений':''}</span><button onClick={()=>{setChatSearchOpen(false);setChatSearchQuery('');setChatSearchResults([])}}>×</button>{chatSearchResults.length>0&&<div className="chat-search-results">{chatSearchResults.map(m=><button key={m.id} onClick={()=>document.getElementById(`message-${m.id}`)?.scrollIntoView({behavior:'smooth',block:'center'})}><b>{m.sender.display_name||m.sender.username}</b><span>{m.text||m.file_name}</span><time>{moscowTime(m.created_at)}</time></button>)}</div>}</div>}<section className={`messages ${mobileTab!=='chat'?'mobile-tab-hidden':''}`} ref={messagesRef}>{msgs.map(m=><div className={'message-item '+(m.sender.id===user.id?'mine':'')} key={m.id}><div id={`message-${m.id}`} className={'bubble '+(m.sender.id===user.id?'mine':'')+(chatSearchResults.some(x=>x.id===m.id)?' search-hit':'')}>{chat.is_group&&m.sender.id!==user.id&&<div className="sender">{m.sender.display_name||m.sender.username}</div>}{m.text&&<div className="message-text"><LinkifiedText text={m.text}/></div>}{m.checklist&&<ChecklistCard checklist={m.checklist}/>}{m.file_url&&(m.mime_type||'').startsWith('image/')?<a href={m.file_url} target="_blank" rel="noreferrer"><img src={m.file_url}/></a>:m.file_url?<a className="file-card" href={m.file_url} target="_blank" rel="noreferrer">📎 <span>{m.file_name}</span></a>:null}</div><span className="message-meta"><time>{moscowTime(m.created_at)}</time>{m.sender.id===user.id&&<MessageTicks status={m.status||'sent'}/>}</span></div>)}<div ref={bottom}/></section><input ref={imageFile} hidden type="file" accept="image/*,video/*" onChange={e=>setSelectedFile(e.target.files?.[0]||null)}/><input ref={file} hidden type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.zip,.rar,text/*,application/*" onChange={e=>setSelectedFile(e.target.files?.[0]||null)}/><input ref={shareFile} hidden type="file" multiple onChange={e=>createShareLink(e.target.files)}/><MobileChatPanel tab={mobileTab} chat={chat} msgs={msgs} user={user} onOpenLink={link=>setEmbeddedApp({title:link.title||link.name||'Ресурс',url:link.url})} onEditLink={i=>setQuickLinkSlot(i)} onPhoto={()=>imageFile.current?.click()} onFile={()=>file.current?.click()} onShare={()=>shareFile.current?.click()} onSearch={()=>setChatSearchOpen(true)} onInfo={()=>setShowInspector(true)} onGroupEdit={()=>setShowGroupEdit(true)} onPush={enablePush} onContactSaved={updated=>{setChat(updated);setChats(xs=>xs.map(x=>x.id===updated.id?updated:x))}}/>{mobileTab==='chat'&&(device.type==='phone'?createPortal(React.cloneElement(composerView,{className:'composer-wrap viewport-composer'}),document.body):composerView)}<MobileChatTaskbar tab={mobileTab} setTab={setMobileTab}/></>:<div className="empty"><div className="empty-mark">M</div><h2>Messenger</h2><p>Выберите чат или создайте новый</p></div>}</main>{activeSection==='chats'&&chat&&showInspector&&<aside className="desktop-inspector"><div className="inspector-head"><b>Информация</b><button onClick={()=>setShowInspector(false)}>×</button></div><div className="inspector-profile"><Avatar user={chat.is_group?{display_name:chat.name,avatar_url:chat.avatar_url}:other} name={chat.name} className="inspector-avatar"/><div><b>{chat.name}</b><small>{chat.is_group?`Группа · ${chat.members.length} участника`:(lastSeenText(other)||'статус уточняется…')}</small></div></div>{!chat.is_group&&<ContactPreferencesField chat={chat} onSaved={updated=>{setChat(updated);setChats(xs=>xs.map(x=>x.id===updated.id?updated:x))}}/>}{chat.is_group&&<section className="inspector-section"><div className="inspector-title"><b>Участники</b><span>{chat.members.length}</span></div><div className="member-avatars">{chat.members.slice(0,5).map(m=><Avatar key={m.id} user={m} className="mini-avatar"/>)}{chat.can_manage_members&&<button onClick={()=>setShowGroupEdit(true)}>＋</button>}</div></section>}<section className="inspector-section"><div className="inspector-title"><b>Ресурсы</b>{chat.can_edit_links&&<button onClick={()=>{const links=chat.quick_links||[];const empty=links.findIndex(x=>!x||!x.url);setQuickLinkSlot(empty>=0?empty:links.length)}}>＋</button>}</div><div className="resource-list">{(chat.quick_links||[]).filter(Boolean).map((l,i)=><div className="resource-item" key={i}><button className="resource-open-button" onClick={()=>setEmbeddedApp({title:l.title||l.name||'Ресурс',url:l.url})}><span className="resource-icon">{(l.title||l.name||'С')[0].toUpperCase()}</span><span>{l.title||l.name||'Ссылка'}</span><b>›</b></button>{chat.can_edit_links&&<button className="resource-edit-button" onClick={()=>setQuickLinkSlot(i)}>⋯</button>}</div>)}{!(chat.quick_links||[]).filter(Boolean).length&&<small>Пока нет ресурсов</small>}</div></section><section className="inspector-section"><div className="inspector-title"><b>Медиа</b></div><button className="inspector-row"><span>Фото</span><b>{msgs.filter(m=>(m.mime_type||'').startsWith('image/')).length} ›</b></button><button className="inspector-row"><span>Документы</span><b>{msgs.filter(m=>m.file_url&&!(m.mime_type||'').startsWith('image/')).length} ›</b></button><button className="inspector-row"><span>Ссылки</span><b>{msgs.filter(m=>/(https?:\/\/|\/share\/)/.test(m.text||'')).length} ›</b></button></section><section className="inspector-section"><div className="inspector-title"><b>Настройки чата</b></div><button className="inspector-row"><span>Уведомления</span><span className="fake-toggle on"/></button></section></aside>}{searchActive&&<div className="global-search-overlay" onPointerDown={closeGlobalSearch}><div className="global-search-shell"><div className="search-box active-global" onPointerDown={e=>e.stopPropagation()}><span>⌕</span><input ref={searchInput} autoFocus value={searchQuery} onChange={e=>setSearchQuery(e.target.value)} placeholder="Поиск"/><button onClick={closeGlobalSearch}>×</button></div><div onPointerDown={e=>e.stopPropagation()}><SearchResults query={searchQuery} kind={searchKind} setKind={setSearchKind} results={searchResults} busy={searchBusy} historyItems={searchHistory} onHistory={q=>{setSearchQuery(q);searchInput.current?.focus()}} onOpenMessage={m=>{closeGlobalSearch();openSearchMessage(m)}} onOpenChat={c=>{closeGlobalSearch();open(c)}} onOpenUser={u=>{closeGlobalSearch();openSearchUser(u)}}/></div></div></div>}{showAttach&&<><button className="attach-backdrop" aria-label="Закрыть меню вложений" onPointerDown={e=>{e.preventDefault();e.stopPropagation();setShowAttach(false)}} onClick={e=>{e.preventDefault();e.stopPropagation();setShowAttach(false)}}/><div className="attach-menu attach-menu-global" onPointerDown={e=>e.stopPropagation()} onClick={e=>e.stopPropagation()}><button onClick={()=>{imageFile.current?.click();setShowAttach(false)}}>Фото или видео</button><button onClick={()=>{file.current?.click();setShowAttach(false)}}>Документ</button><button onClick={()=>{setShowAttach(false);shareFile.current?.click()}}>Отправить ссылку</button><button onClick={()=>{setShowAttach(false);setShowChecklistCreate(true)}}>Совместный список</button></div></>}{showGroupEdit&&chat?.is_group&&<GroupEditModal chat={chat} close={()=>setShowGroupEdit(false)} saved={c=>{setChat(c);setChats(xs=>xs.map(x=>x.id===c.id?c:x));setShowGroupEdit(false)}}/>}{showAllQuickLinks&&chat&&<QuickLinksPanel chat={chat} close={()=>setShowAllQuickLinks(false)} onEdit={i=>{setShowAllQuickLinks(false);setQuickLinkSlot(i)}}/>}{quickLinkSlot!==null&&chat&&<QuickLinkModal chat={chat} slot={quickLinkSlot} close={()=>setQuickLinkSlot(null)} saved={c=>{setChat(c);setChats(xs=>xs.map(x=>x.id===c.id?c:x));setQuickLinkSlot(null)}}/>}{homeLinkSlot!==null&&<HomeLinkModal user={user} slot={homeLinkSlot} close={()=>setHomeLinkSlot(null)} saved={u=>{setUser(u);setHomeLinkSlot(null)}}/>}{showProfile&&<ProfileModal user={user} close={()=>setShowProfile(false)} saved={u=>{setUser(u);setShowProfile(false);loadChats()}}/>}{showNew&&<NewChat close={()=>setShowNew(false)} created={c=>{setShowNew(false);loadChats();open(c)}}/>}{manualLinkOpen&&<div className="modal manual-link-modal" onPointerDown={closeManualLinkDialog}><div className="modal-card glass-card" onPointerDown={e=>e.stopPropagation()}><div className="modal-head"><h3>Вставить ссылку</h3><button type="button" aria-label="Закрыть" onClick={closeManualLinkDialog}>×</button></div><p className="manual-link-copy">iPhone не разрешил автоматически прочитать буфер. Вставьте скопированную ссылку сюда:</p><input autoFocus value={manualLinkValue} onChange={e=>{setManualLinkValue(e.target.value);setManualLinkError('')}} onPaste={e=>{const v=e.clipboardData?.getData('text/plain')||'';setManualLinkValue(v);setManualLinkError('')}} placeholder="https://files.igorson.xyz/…" autoCapitalize="none" autoCorrect="off" inputMode="url"/>{manualLinkError&&<div className="error">{manualLinkError}</div>}<div className="manual-link-actions"><button type="button" className="secondary" onClick={closeManualLinkDialog}>Отмена</button><button type="button" className="primary" onClick={submitManualLink}>Вставить</button></div></div></div>}{showChecklistCreate&&<ChecklistCreateModal chats={chat?[chat]:chats} initialChatId={chat?.id} close={()=>setShowChecklistCreate(false)} created={(row,cid)=>{if(chat?.id===cid)loadMessages(cid);loadChats()}}/>}{embeddedApp&&<EmbeddedAppWindow app={embeddedApp} close={()=>setEmbeddedApp(null)}/>}{!chat&&<MobileMainDock section={activeSection} setSection={setActiveSection} onSettings={()=>setShowProfile(true)}/>}<CallLayer user={user} ws={wsRef} chat={chat} invite={invite} setInvite={setInvite} clearRequestedCall={()=>{closeCallNotifications();setRequestedCallId(null);const u=new URL(location.href);u.searchParams.delete('call');history.replaceState(null,'',u.pathname+u.search)}}/></div>}
 
 
-function MobileChatTaskbar({tab,setTab,callActive}){
- if(callActive)return null;
+function MobileChatTaskbar({tab,setTab}){
  const items=[['chat','dockChat','Чат'],['links','link','Ссылки'],['attachments','paperclip','Вложения'],['info','info','Информация'],['more','more','Ещё']];
  const dock=<nav className="mobile-chat-taskbar viewport-dock" aria-label="Разделы чата">{items.map(([id,icon,label])=><button key={id} className={tab===id?'active':''} onClick={()=>setTab(id)}><Icon name={icon} size={30}/><span>{label}</span></button>)}</nav>;
  return createPortal(dock,document.body)
 }
 
-function OrientationGuard(){
- const [landscape,setLandscape]=useState(()=>window.innerWidth>window.innerHeight);
- const touchUi=document.documentElement.dataset.uiMode==='touch';
- useEffect(()=>{
-  if(touchUi)return;
-  const update=()=>setLandscape(window.innerWidth>window.innerHeight);
-  window.addEventListener('resize',update,{passive:true});
-  window.visualViewport?.addEventListener('resize',update,{passive:true});
-  screen.orientation?.addEventListener?.('change',update);
-  update();
-  return()=>{
-   window.removeEventListener('resize',update);
-   window.visualViewport?.removeEventListener('resize',update);
-   screen.orientation?.removeEventListener?.('change',update);
-  };
- },[]);
- useEffect(()=>{
-  if(!landscape||!document.documentElement.dataset.device||document.documentElement.dataset.device==='desktop')return;
-  const tryLock=()=>screen.orientation?.lock?.('portrait').catch(()=>{});
-  window.addEventListener('pointerdown',tryLock,{once:true,capture:true});
-  return()=>window.removeEventListener('pointerdown',tryLock,{capture:true});
- },[landscape]);
- if(!landscape)return null;
- const deviceType=document.documentElement.dataset.device;
- if(deviceType==='desktop')return null;
- if(touchUi)return null;
- const overlay=<div className="rotate-device-overlay rotate-device-overlay-active" role="alert" aria-live="assertive" style={{display:'grid',visibility:'visible',pointerEvents:'auto',position:'fixed',inset:0,zIndex:2147483647,placeItems:'center',padding:32,background:'#f5f7f4',color:'#26312b',textAlign:'center'}}><div><span className="rotate-device-icon">↻</span><h2>Поверните устройство</h2><p>Приложение работает только в вертикальном положении.</p></div></div>;
- return createPortal(overlay,document.body)
-}
-function MobileMainDock({section,setSection,onSettings,callActive}){
- if(callActive)return null;
+function MobileMainDock({section,setSection,onSettings}){
  const items=[['chats','dockChat','Чаты'],['cloud','dockDisk','Диск'],['apps','dockApps','Приложения'],['favorites','dockStar','Избранное'],['settings','dockProfile','Профиль']];
  const dock=<nav className="mobile-main-dock viewport-dock" aria-label="Основные разделы">{items.map(([id,icon,label])=><button key={id} className={(id==='settings'?false:section===id)?'active':''} onClick={()=>id==='settings'?onSettings():setSection(id)}><Icon name={icon} size={30}/><span>{label}</span></button>)}</nav>;
  return createPortal(dock,document.body)
 }
 function MobileChatPanel({tab,chat,msgs,user,onOpenLink,onEditLink,onPhoto,onFile,onShare,onSearch,onGroupEdit,onPush,onContactSaved}){
  if(tab==='chat')return null;
- const links=(chat.quick_links||[]).filter(Boolean);
+ const links=(chat.quick_links||[]).map((link,slot)=>link?{...link,_slot:slot}:null).filter(Boolean);
  const photos=msgs.filter(m=>(m.mime_type||'').startsWith('image/')).length;
  const docs=msgs.filter(m=>m.file_url&&!(m.mime_type||'').startsWith('image/')).length;
  const urlCount=msgs.filter(m=>/(https?:\/\/|\/share\/)/.test(m.text||'')).length;
  return <section className="mobile-chat-panel">
-   {tab==='links'&&<><div className="mobile-panel-head"><div><h2>Ссылки</h2><p>Ресурсы этого чата</p></div>{chat.can_edit_links&&<button className="mobile-panel-add" onClick={()=>onEditLink(links.length)}>＋</button>}</div><div className="mobile-link-list">{links.map((link,i)=><article key={i}><button className="mobile-link-open" onClick={()=>onOpenLink(link)}><span className="mobile-link-mark">{quickLinkLetter(link.title||link.name)}</span><span><b>{link.title||link.name||'Ссылка'}</b><small>{String(link.url||'').replace(/^https?:\/\//,'')}</small></span></button>{chat.can_edit_links&&<button className="mobile-row-more" onClick={()=>onEditLink(i)}>⋯</button>}</article>)}{!links.length&&<div className="mobile-panel-empty"><Icon name="link" size={30}/><b>Ссылок пока нет</b><p>Добавьте сайт или приложение для быстрого доступа.</p></div>}</div></>}
+   {tab==='links'&&<><div className="mobile-panel-head"><div><h2>Ссылки</h2><p>Ресурсы этого чата</p></div>{chat.can_edit_links&&<button className="mobile-panel-add" onClick={()=>{const source=chat.quick_links||[];const empty=source.findIndex(x=>!x||!x.url);onEditLink(empty>=0?empty:source.length)}}>＋</button>}</div><div className="mobile-link-list">{links.map((link,i)=><article key={i}><button className="mobile-link-open" onClick={()=>onOpenLink(link)}><span className="mobile-link-mark">{quickLinkLetter(link.title||link.name)}</span><span><b>{link.title||link.name||'Ссылка'}</b><small>{String(link.url||'').replace(/^https?:\/\//,'')}</small></span></button>{chat.can_edit_links&&<button className="mobile-row-more" onClick={()=>onEditLink(link._slot)}>⋯</button>}</article>)}{!links.length&&<div className="mobile-panel-empty"><Icon name="link" size={30}/><b>Ссылок пока нет</b><p>Добавьте сайт или приложение для быстрого доступа.</p></div>}</div></>}
    {tab==='attachments'&&<><div className="mobile-panel-head"><div><h2>Вложения</h2><p>Что отправить в чат</p></div></div><div className="mobile-action-list"><button onClick={onPhoto}><Icon name="image" size={23}/><span><b>Фото и видео</b><small>Выбрать из медиатеки</small></span><i>›</i></button><button onClick={onFile}><Icon name="file" size={23}/><span><b>Файл</b><small>Документ, архив или таблица</small></span><i>›</i></button><button onClick={onShare}><Icon name="link" size={23}/><span><b>Отправить ссылкой</b><small>Несколько файлов — одной ссылкой</small></span><i>›</i></button></div></>}
    {tab==='info'&&<><div className="mobile-panel-head"><div><h2>Информация</h2><p>{chat.is_group?`${chat.members.length} участников`:chat.name}</p></div></div>{!chat.is_group&&<ContactPreferencesField chat={chat} compact onSaved={onContactSaved}/>} {chat.is_group&&<div className="mobile-section"><h3>Участники</h3><div className="mobile-member-strip">{chat.members.slice(0,8).map(m=><Avatar key={m.id} user={m} className="mini-avatar"/>)}{chat.can_manage_members&&<button onClick={onGroupEdit}>＋</button>}</div></div>}<div className="mobile-action-list compact"><button><Icon name="image" size={22}/><span><b>Фото</b></span><strong>{photos}</strong><i>›</i></button><button><Icon name="file" size={22}/><span><b>Документы</b></span><strong>{docs}</strong><i>›</i></button><button><Icon name="link" size={22}/><span><b>Ссылки</b></span><strong>{urlCount}</strong><i>›</i></button>{chat.is_group&&chat.can_edit&&<button onClick={onGroupEdit}><Icon name="settings" size={22}/><span><b>Настройки группы</b></span><i>›</i></button>}</div></>}
    {tab==='more'&&<><div className="mobile-panel-head"><div><h2>Ещё</h2><p>Дополнительные действия</p></div></div><div className="mobile-action-list"><button onClick={onSearch}><Icon name="search" size={23}/><span><b>Поиск в чате</b><small>Сообщения, файлы и ссылки</small></span><i>›</i></button><button onClick={onPush}><Icon name="bell" size={23}/><span><b>Уведомления</b><small>Настроить push-уведомления</small></span><i>›</i></button><button className="muted"><Icon name="star" size={23}/><span><b>Избранное</b><small>Скоро появится</small></span><i>›</i></button></div></>}
@@ -1118,45 +817,13 @@ function GroupEditModal({chat,close,saved}){
   </div>{pickerOpen&&<UserPickerModal excluded={members.map(m=>m.id)} close={()=>setPickerOpen(false)} select={addSelected}/>}</div>
 }
 
-function UserPickerModal({excluded,close,select}){const[users,setUsers]=useState([]),[q,setQ]=useState(''),[busy,setBusy]=useState(true),[selected,setSelected]=useState([]),[loadError,setLoadError]=useState('');const loadUsers=()=>{setBusy(true);setLoadError('');api('/api/users').then(r=>setUsers(Array.isArray(r)?r:(r?.users||[]))).catch(e=>setLoadError(e.message||'Не удалось загрузить пользователей')).finally(()=>setBusy(false))};useEffect(()=>{loadUsers()},[]);const shown=users.filter(u=>!excluded.includes(u.id)&&(u.username+' '+(u.display_name||'')).toLowerCase().includes(q.toLowerCase()));function toggle(u){setSelected(xs=>xs.includes(u.id)?xs.filter(id=>id!==u.id):[...xs,u.id])}const chosen=users.filter(u=>selected.includes(u.id));return <div className="modal user-picker-modal" onPointerDown={close}>
-<div className="modal-card glass-card user-picker-card" onPointerDown={e=>e.stopPropagation()}>
-<div className="modal-head user-picker-head">
-<h3>Добавить участника</h3>
-<button className="icon-close" onClick={close} aria-label="Закрыть">×</button>
-</div>
-<label className="user-search-field">
-<span>⌕</span>
-<input autoFocus value={q} onChange={e=>setQ(e.target.value)} placeholder="Поиск по имени или логину"/>
-</label>
-<div className="user-picker-list">{busy?<div className="muted">Загрузка…</div>:shown.map(u=>{const active=selected.includes(u.id);return <button className={active?'selected':''} key={u.id} onClick={()=>toggle(u)}>
-<Avatar user={u}/>
-<span>
-<b>{u.display_name||u.username}</b>
-<small>@{u.username}</small>
-</span>
-<i className="user-select-mark">{active?'✓':'＋'}</i>
-</button>})}{loadError&&<div className="picker-load-error">
-<span>{loadError}</span>
-<button onClick={loadUsers}>Повторить</button>
-</div>}{!busy&&!loadError&&!shown.length&&<div className="muted empty-users">Пользователи не найдены</div>}</div>
-<div className="user-picker-footer">
-<span>Выбрано: {selected.length}</span>
-<div>
-<button className="secondary picker-cancel" onClick={close}>Отмена</button>
-<button className="primary picker-add" disabled={!selected.length} onClick={()=>select(chosen)}>Добавить</button>
-</div>
-</div>
-</div>
-</div>}
+function UserPickerModal({excluded,close,select}){const[users,setUsers]=useState([]),[q,setQ]=useState(''),[busy,setBusy]=useState(true),[selected,setSelected]=useState([]),[loadError,setLoadError]=useState('');const loadUsers=()=>{setBusy(true);setLoadError('');api('/api/users').then(r=>setUsers(Array.isArray(r)?r:(r?.users||[]))).catch(e=>setLoadError(e.message||'Не удалось загрузить пользователей')).finally(()=>setBusy(false))};useEffect(()=>{loadUsers()},[]);const shown=users.filter(u=>!excluded.includes(u.id)&&(u.username+' '+(u.display_name||'')).toLowerCase().includes(q.toLowerCase()));function toggle(u){setSelected(xs=>xs.includes(u.id)?xs.filter(id=>id!==u.id):[...xs,u.id])}const chosen=users.filter(u=>selected.includes(u.id));return <div className="modal user-picker-modal" onPointerDown={close}><div className="modal-card glass-card user-picker-card" onPointerDown={e=>e.stopPropagation()}><div className="modal-head user-picker-head"><h3>Добавить участника</h3><button className="icon-close" onClick={close} aria-label="Закрыть">×</button></div><label className="user-search-field"><span>⌕</span><input autoFocus value={q} onChange={e=>setQ(e.target.value)} placeholder="Поиск по имени или логину"/></label><div className="user-picker-list">{busy?<div className="muted">Загрузка…</div>:shown.map(u=>{const active=selected.includes(u.id);return <button className={active?'selected':''} key={u.id} onClick={()=>toggle(u)}><Avatar user={u}/><span><b>{u.display_name||u.username}</b><small>@{u.username}</small></span><i className="user-select-mark">{active?'✓':'＋'}</i></button>})}{loadError&&<div className="picker-load-error"><span>{loadError}</span><button onClick={loadUsers}>Повторить</button></div>}{!busy&&!loadError&&!shown.length&&<div className="muted empty-users">Пользователи не найдены</div>}</div><div className="user-picker-footer"><span>Выбрано: {selected.length}</span><div><button className="secondary picker-cancel" onClick={close}>Отмена</button><button className="primary picker-add" disabled={!selected.length} onClick={()=>select(chosen)}>Добавить</button></div></div></div></div>}
 
 function MemberRow({member,chat,onRole,onRemove}){const[role,setRole]=useState(member.role||'member'),[expiry,setExpiry]=useState(()=>member.expires_at?String(member.expires_at).slice(0,16):'');useEffect(()=>{setRole(member.role||'member');setExpiry(member.expires_at?String(member.expires_at).slice(0,16):'')},[member.role,member.expires_at]);const editable=chat.can_manage_members&&member.role!=='owner'&&member.id!==Number(localStorage.userId||-1)&&!(chat.my_role==='admin'&&member.role==='admin');return <div className="member-row"><Avatar user={member}/><div className="member-copy"><b>{member.display_name||member.username}</b><small>@{member.username} · {member.role_label||role}</small></div>{editable?<div className="member-role-controls"><select value={role} onChange={e=>{const r=e.target.value;setRole(r);onRole(member,r,expiry)}}>{chat.my_role==='owner'&&<option value="admin">Администратор</option>}<option value="member">Участник</option><option value="guest">Гость</option></select>{role==='guest'&&<input type="datetime-local" value={expiry} onChange={e=>{setExpiry(e.target.value);onRole(member,'guest',e.target.value)}}/>}<button className="member-remove-button" onClick={()=>onRemove(member)} aria-label={`Удалить ${member.display_name||member.username}`} title="Удалить участника"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13M10 11v5m4-5v5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/></svg></button></div>:<span className="role-badge">{member.role_label||role}</span>}</div>}
 
 function ProfileModal({user,close,saved}){const[name,setName]=useState(user.display_name||user.username),[avatar,setAvatar]=useState(user.avatar_url||''),[busy,setBusy]=useState(false),pick=useRef();async function choose(){const f=pick.current?.files?.[0];if(!f)return;setBusy(true);try{const data=new FormData();data.append('file',f);const r=await api('/api/upload',{method:'POST',body:data});setAvatar(r.file_url)}catch(e){alert(e.message)}finally{setBusy(false)}}async function save(){setBusy(true);try{saved(await api('/api/me',{method:'PATCH',body:JSON.stringify({display_name:name,avatar_url:avatar})}))}catch(e){alert(e.message)}finally{setBusy(false)}}return <div className="modal" onPointerDown={close}><div className="modal-card profile-card" onPointerDown={e=>e.stopPropagation()}><div className="modal-head"><h3>Профиль</h3><button onClick={close}>×</button></div><button className="profile-avatar-edit" onClick={()=>pick.current?.click()}><Avatar user={{...user,display_name:name,avatar_url:avatar}} className="profile-avatar"/><span>Изменить фото</span></button><input ref={pick} hidden type="file" accept="image/*" onChange={choose}/><label className="field-label">Отображаемое имя<input value={name} maxLength="80" onChange={e=>setName(e.target.value)}/></label><small>Логин для входа: @{user.username}</small><button className="primary" disabled={busy||!name.trim()} onClick={save}>{busy?'Сохранение…':'Сохранить'}</button><div className="profile-danger-zone"><button className="profile-logout" type="button" onClick={()=>{if(confirm('Выйти из аккаунта?')){localStorage.clear();sessionStorage.clear();location.reload()}}}><Icon name="logout" size={19}/><span>Выйти из аккаунта</span></button></div></div></div>}
 
 function NewChat({close,created}){const[users,setUsers]=useState([]),[sel,setSel]=useState([]),[name,setName]=useState(''),[q,setQ]=useState('');useEffect(()=>{api('/api/users').then(setUsers)},[]);const shown=useMemo(()=>users.filter(u=>(u.username+' '+(u.display_name||'')).toLowerCase().includes(q.toLowerCase())),[users,q]);async function make(){const c=await api('/api/chats',{method:'POST',body:JSON.stringify({name:name||null,usernames:sel})});created(c)}return <div className="modal" onPointerDown={close}><div className="modal-card" onPointerDown={e=>e.stopPropagation()}><div className="modal-head"><h3>Новый чат</h3><button onClick={close}>×</button></div><input placeholder="Название группы" value={name} onChange={e=>setName(e.target.value)}/><input placeholder="Поиск пользователя" value={q} onChange={e=>setQ(e.target.value)}/><div className="user-list">{shown.map(u=><label key={u.id}><input type="checkbox" checked={sel.includes(u.username)} onChange={e=>setSel(s=>e.target.checked?[...s,u.username]:s.filter(x=>x!==u.username))}/><Avatar user={u}/><span>{u.display_name||u.username}<small className="username-hint">@{u.username}</small></span></label>)}</div><button className="primary" onClick={make} disabled={!sel.length}>Создать</button></div></div>}
-function TouchApp(){useEffect(()=>{document.body.classList.add('touch-shell-active');return()=>document.body.classList.remove('touch-shell-active')},[]);return <div className="touch-app-host"><MessengerApp uiMode="touch"/></div>}
-function DesktopApp(){useEffect(()=>{document.body.classList.add('desktop-shell-active');return()=>document.body.classList.remove('desktop-shell-active')},[]);return <div className="desktop-app-host"><MessengerApp uiMode="desktop"/></div>}
-function App(){const[mode]=useState(()=>chooseUiMode());useEffect(()=>{const device=detectDevice(mode);document.documentElement.dataset.uiMode=mode;document.documentElement.dataset.device=device.type;document.documentElement.dataset.platform=device.android?'android':device.ios?'ios':'desktop'},[mode]);return mode==='touch'?<TouchApp/>:<DesktopApp/>}
 const root=createRoot(document.getElementById('root'));
 root.render(<App/>);
 requestAnimationFrame(()=>requestAnimationFrame(()=>{document.documentElement.classList.remove('app-booting');document.documentElement.classList.add('app-ready')}));
